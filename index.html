@@ -1,0 +1,2198 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>GRAVITY · DeckFlip 팀 통합관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#070A12; --bg2:#0B0F1C; --panel:rgba(255,255,255,.04); --panel2:rgba(255,255,255,.065);
+  --line:rgba(255,255,255,.09); --line2:rgba(255,255,255,.15);
+  --ink:#EEF1FF; --mut:#9AA4C8; --dim:#6B7494; --faint:#4a5170;
+  --a1:#7C5CFF; --a2:#2AD1FF; --grad:linear-gradient(120deg,#7C5CFF,#2AD1FF);
+  --gold:#FFC24B; --good:#3DDC97; --bad:#FF6B81; --warn:#FFB454;
+  --glass:rgba(255,255,255,.05); --glassbd:rgba(255,255,255,.12);
+  --shadow:0 18px 50px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.06);
+  --fh:"Space Grotesk","Pretendard",sans-serif; --fb:"Pretendard",system-ui,sans-serif; --fm:"JetBrains Mono",ui-monospace,monospace;
+  --ease:cubic-bezier(.22,1,.36,1);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--fb);line-height:1.6;word-break:keep-all;overflow:hidden}
+body::before{content:"";position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:radial-gradient(900px 500px at 88% -10%,rgba(124,92,255,.14),transparent 60%),
+  radial-gradient(700px 460px at -8% 108%,rgba(42,209,255,.08),transparent 55%)}
+::selection{background:rgba(124,92,255,.4)}
+::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:6px}
+button,input,textarea,select{font-family:inherit;color:inherit}
+.mono{font-family:var(--fm)}
+.grad{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hidden{display:none!important}
+.btn{border:1px solid var(--glassbd);background:var(--glass);color:var(--ink);border-radius:11px;padding:10px 16px;
+  cursor:pointer;font-weight:600;font-size:14px;transition:.2s var(--ease);display:inline-flex;align-items:center;gap:8px}
+.btn:hover{border-color:var(--a1);transform:translateY(-1px)}
+.btn.pri{background:var(--grad);border:0;color:#0a0a14;font-weight:700}
+.btn.sm{padding:6px 11px;font-size:12.5px;border-radius:9px}
+.btn.gho{background:transparent;border-color:var(--line)}
+.chip{font-family:var(--fm);font-size:11.5px;padding:4px 10px;border-radius:99px;border:1px solid var(--line2);color:var(--mut)}
+input,textarea,select{background:rgba(0,0,0,.28);border:1px solid var(--line);border-radius:10px;padding:11px 13px;
+  font-size:14px;width:100%;outline:none;transition:.2s}
+input:focus,textarea:focus,select:focus{border-color:var(--a1);box-shadow:0 0 0 3px rgba(124,92,255,.18)}
+textarea{resize:vertical;min-height:80px}
+label{font-size:12.5px;color:var(--mut);font-weight:600;display:block;margin-bottom:6px}
+
+/* ===== 오버레이(랜딩/로그인) ===== */
+.overlay{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:24px;
+  background:radial-gradient(1000px 600px at 50% -10%,rgba(124,92,255,.18),transparent 60%),var(--bg);overflow:auto}
+.card{width:100%;max-width:520px;background:var(--panel2);border:1px solid var(--glassbd);border-radius:22px;
+  padding:34px;box-shadow:var(--shadow);backdrop-filter:blur(20px)}
+.brandrow{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.logo{width:42px;height:42px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-family:var(--fh);font-weight:700;font-size:20px;color:#0a0a14}
+.warnbox{border:1px solid rgba(255,180,84,.4);background:rgba(255,180,84,.08);border-radius:14px;padding:16px 18px;margin:18px 0;font-size:13.5px;color:#FFE1B0}
+.warnbox b{color:var(--warn)}
+.accgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-top:14px}
+.accpick{border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer;text-align:center;transition:.2s;background:var(--panel)}
+.accpick:hover,.accpick.on{border-color:var(--a1);background:var(--panel2)}
+.accpick .av{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;margin:0 auto 7px;font-size:19px}
+.accpick .nm{font-weight:700;font-size:14px}.accpick .ro{font-size:11px;color:var(--dim);margin-top:1px}
+.tb{flex:1;padding:9px;border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:10px;cursor:pointer;font-weight:600;font-size:13px}
+.tb.on{background:var(--panel2);color:var(--ink);border-color:var(--a1)}
+
+/* ===== 앱 레이아웃 ===== */
+#app{position:relative;z-index:1;height:100%;display:grid;grid-template-columns:230px 1fr;grid-template-rows:60px 1fr}
+.side{grid-row:1/3;background:var(--bg2);border-right:1px solid var(--line);padding:16px 12px;display:flex;flex-direction:column;gap:4px;overflow:auto}
+.side .brand{display:flex;align-items:center;gap:10px;padding:6px 8px 16px}
+.side .brand .logo{width:32px;height:32px;font-size:15px;border-radius:9px}
+.side .brand b{font-family:var(--fh);font-size:16px}
+.navi{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;cursor:pointer;color:var(--mut);font-weight:600;font-size:14px;transition:.15s;position:relative}
+.navi:hover{background:var(--panel);color:var(--ink)}
+.navi.on{background:var(--panel2);color:var(--ink)}
+.navi.on::before{content:"";position:absolute;left:0;top:22%;height:56%;width:3px;border-radius:3px;background:var(--grad)}
+.navi .ic{width:18px;text-align:center}
+.navi .bdg{margin-left:auto;font-family:var(--fm);font-size:10.5px;background:var(--a1);color:#0a0a14;border-radius:99px;padding:1px 7px;font-weight:700}
+.side .foot{margin-top:auto;font-size:11px;color:var(--faint);padding:10px 8px;font-family:var(--fm)}
+
+.top{grid-column:2;display:flex;align-items:center;gap:14px;padding:0 22px;border-bottom:1px solid var(--line);background:rgba(7,10,18,.6);backdrop-filter:blur(10px)}
+.ham{display:none;background:none;border:0;color:var(--ink);font-size:21px;cursor:pointer;padding:0 4px}
+.top .search{flex:1;max-width:420px;display:flex;align-items:center;gap:9px;background:rgba(0,0,0,.25);border:1px solid var(--line);border-radius:10px;padding:8px 12px;color:var(--dim);cursor:pointer;font-size:13px}
+.top .search kbd{margin-left:auto;font-family:var(--fm);font-size:10.5px;border:1px solid var(--line2);border-radius:5px;padding:1px 6px}
+.dday{display:flex;gap:8px}
+.dchip{font-family:var(--fm);font-size:11.5px;border:1px solid var(--line);border-radius:9px;padding:5px 10px;color:var(--mut)}
+.dchip b{color:var(--gold)}
+.sync{font-family:var(--fm);font-size:11px;color:var(--dim);display:flex;align-items:center;gap:6px}
+.sync .dot{width:7px;height:7px;border-radius:50%;background:var(--good);box-shadow:0 0 8px var(--good)}
+.sync .dot.local{background:var(--warn);box-shadow:0 0 8px var(--warn)}
+.me{display:flex;align-items:center;gap:9px;cursor:pointer;padding:5px 8px;border-radius:10px}
+.me:hover{background:var(--panel)}
+.me .av{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;font-size:15px}
+.me .nm{font-weight:700;font-size:13.5px;line-height:1.1}.me .ro{font-size:10.5px;color:var(--dim)}
+
+.main{grid-column:2;overflow:auto;padding:26px 30px 60px}
+.view{max-width:1080px;margin:0 auto;animation:fade .4s var(--ease)}
+@keyframes fade{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.vhead{display:flex;align-items:flex-end;justify-content:space-between;gap:14px;margin-bottom:20px;flex-wrap:wrap}
+.vhead h1{font-family:var(--fh);font-size:27px;font-weight:700}
+.vhead .sub{color:var(--dim);font-size:13.5px;margin-top:3px}
+
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px 20px}
+.panel h3{font-family:var(--fh);font-size:15px;margin-bottom:12px;display:flex;align-items:center;gap:8px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:1000px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+
+/* 진행 링/바 */
+.ring{--p:0;width:96px;height:96px;border-radius:50%;display:grid;place-items:center;
+  background:radial-gradient(closest-side,var(--bg2) 78%,transparent 80%),conic-gradient(var(--a1) calc(var(--p)*1%),rgba(255,255,255,.08) 0)}
+.ring b{font-family:var(--fh);font-size:22px}
+.bar{height:8px;border-radius:6px;background:rgba(255,255,255,.08);overflow:hidden}
+.bar>span{display:block;height:100%;border-radius:6px;background:var(--grad);transition:width .6s var(--ease)}
+
+/* 태스크 */
+.task{display:flex;gap:12px;align-items:flex-start;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:var(--panel);margin-bottom:9px;transition:.2s}
+.task:hover{border-color:var(--line2)}
+.task.done{opacity:.5}.task.done .tt{text-decoration:line-through}
+.cbox{flex:none;width:22px;height:22px;border-radius:7px;border:2px solid var(--dim);cursor:pointer;display:grid;place-items:center;margin-top:1px;transition:.2s;color:#0a0a14;font-size:13px;font-weight:800}
+.task.done .cbox{background:var(--good);border-color:transparent}
+.tt{font-weight:600;font-size:14.5px}
+.tmeta{display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;align-items:center}
+.pri{font-family:var(--fm);font-size:10.5px;padding:2px 7px;border-radius:6px}
+.pri.h{background:rgba(255,107,129,.16);color:var(--bad)}.pri.m{background:rgba(255,194,75,.15);color:var(--gold)}.pri.l{background:rgba(255,255,255,.06);color:var(--dim)}
+.subs{margin-top:9px;padding-left:6px;border-left:2px dashed var(--line);display:flex;flex-direction:column;gap:5px}
+.sub{display:flex;gap:8px;align-items:center;font-size:12.5px;color:var(--mut);cursor:pointer}
+.sub .sc{width:15px;height:15px;border-radius:5px;border:1.5px solid var(--dim);display:grid;place-items:center;font-size:10px}
+.sub.done .sc{background:var(--good);border-color:transparent;color:#0a0a14}.sub.done span{text-decoration:line-through;opacity:.6}
+.av{background:var(--panel2)}
+.pfp{width:24px;height:24px;border-radius:7px;display:inline-grid;place-items:center;font-size:13px;flex:none}
+
+/* 피드백 */
+.fbitem{border:1px solid var(--line);border-radius:14px;padding:15px 17px;background:var(--panel);margin-bottom:12px}
+.fbhead{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.fbhead .when{margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--dim)}
+.fbbody{font-size:14px;white-space:pre-wrap}
+.cmts{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:8px}
+.cmt{display:flex;gap:8px;font-size:13px}.cmt .cb{background:rgba(255,255,255,.03);border:1px solid var(--line);border-radius:10px;padding:7px 11px;flex:1}
+.datesep{display:flex;align-items:center;gap:12px;margin:20px 0 12px;color:var(--dim);font-family:var(--fm);font-size:12px}
+.datesep::before,.datesep::after{content:"";flex:1;height:1px;background:var(--line)}
+
+/* 감지 경고 */
+.sensitive{border-color:var(--warn)!important;box-shadow:0 0 0 3px rgba(255,180,84,.2)!important}
+.sensmsg{font-size:12px;color:var(--warn);margin-top:6px;display:flex;gap:6px;align-items:center}
+
+/* 활동/뱃지 */
+.act{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--line);font-size:13px}
+.act .when{margin-left:auto;font-family:var(--fm);font-size:10.5px;color:var(--faint);white-space:nowrap}
+.badge{display:inline-flex;flex-direction:column;align-items:center;gap:4px;padding:12px;border:1px solid var(--line);border-radius:13px;background:var(--panel);min-width:88px}
+.badge.lock{opacity:.35}.badge .bi{font-size:26px}.badge .bn{font-size:11px;color:var(--mut);text-align:center}
+
+/* 토스트/모달/팔레트 */
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(20px);z-index:200;opacity:0;
+  background:rgba(12,15,26,.95);border:1px solid var(--glassbd);border-radius:12px;padding:11px 20px;font-size:14px;
+  transition:.3s var(--ease);pointer-events:none;backdrop-filter:blur(10px)}
+#toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.modal{position:fixed;inset:0;z-index:150;display:none;place-items:center;padding:22px;background:rgba(3,5,10,.7);backdrop-filter:blur(6px)}
+.modal.on{display:grid}
+.modal .box{width:100%;max-width:540px;background:var(--bg2);border:1px solid var(--glassbd);border-radius:18px;padding:24px;box-shadow:var(--shadow);max-height:88vh;overflow:auto}
+#palette{position:fixed;inset:0;z-index:180;display:none;justify-content:center;padding-top:14vh;background:rgba(3,5,10,.6);backdrop-filter:blur(6px)}
+#palette.on{display:flex}
+#palette .pbox{width:100%;max-width:600px;height:fit-content;background:var(--bg2);border:1px solid var(--glassbd);border-radius:16px;overflow:hidden;box-shadow:var(--shadow)}
+#palette input{border:0;border-radius:0;border-bottom:1px solid var(--line);padding:16px 18px;font-size:16px}
+.presult{padding:8px}
+.pr{display:flex;gap:11px;align-items:center;padding:10px 12px;border-radius:10px;cursor:pointer;font-size:14px}
+.pr:hover,.pr.on{background:var(--panel2)}.pr .ph{margin-left:auto;font-family:var(--fm);font-size:11px;color:var(--dim)}
+.confetti{position:fixed;width:9px;height:9px;z-index:190;pointer-events:none;border-radius:2px}
+.empty{text-align:center;color:var(--dim);padding:40px 0;font-size:14px}
+/* 닫기 X · 도움말 · 상태 · 3열 보드 */
+.modal .box{position:relative}
+.mclose{position:absolute;top:12px;right:14px;background:none;border:0;color:var(--mut);font-size:22px;line-height:1;cursor:pointer;padding:4px;border-radius:8px}
+.mclose:hover{color:var(--ink);background:var(--panel)}
+.help{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font-weight:700;cursor:pointer;font-size:15px}
+.help:hover{border-color:var(--a1);color:var(--ink)}
+.stpill{cursor:pointer;border:1px solid var(--line2)}
+.st-todo{color:var(--dim)} .st-doing{color:var(--a2);border-color:rgba(42,209,255,.4);background:rgba(42,209,255,.08)} .st-done{color:var(--good);border-color:rgba(61,220,151,.35)}
+.board3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-items:start}
+.bcol{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px;min-height:120px}
+.bcolh{font-family:var(--fh);font-size:14px;font-weight:600;padding:4px 6px 12px;display:flex;align-items:center;gap:8px}
+.bcolh .cnt{margin-left:auto;font-family:var(--fm);font-size:12px;color:var(--dim)}
+.bcard{background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:11px 12px;margin-bottom:9px;position:relative}
+.bcard:hover{border-color:var(--line2)}
+.bmove{display:flex;gap:6px;margin-top:9px;justify-content:flex-end}
+.bmove button{width:26px;height:24px;border-radius:7px;border:1px solid var(--line);background:rgba(255,255,255,.04);color:var(--mut);cursor:pointer;font-size:11px}
+.bmove button:hover{border-color:var(--a1);color:var(--ink)}
+.fbdel{margin-left:6px;background:none;border:0;color:var(--faint);cursor:pointer;font-size:12px}
+.fbdel:hover{color:var(--bad)}
+.cdel{background:none;border:0;color:var(--faint);cursor:pointer;font-size:12px;margin-left:auto}
+.cdel:hover{color:var(--bad)}
+@media(max-width:820px){.board3{grid-template-columns:1fr}}
+/* 승인 대기 */
+.pendcard{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.pendcard .act2{margin-left:auto;display:flex;gap:8px}
+/* DM */
+.dmwrap{display:grid;grid-template-columns:260px 1fr;gap:16px;height:calc(100vh - 190px);min-height:420px}
+.dmlist{border:1px solid var(--line);border-radius:14px;padding:8px;overflow:auto;background:var(--panel)}
+.dmp{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;cursor:pointer}
+.dmp:hover{background:var(--panel)} .dmp.on{background:var(--panel2)}
+.dmp .bdg{margin-left:auto;font-family:var(--fm);font-size:10.5px;background:var(--a1);color:#0a0a14;border-radius:99px;padding:1px 7px;font-weight:700}
+.dmthread{border:1px solid var(--line);border-radius:14px;display:flex;flex-direction:column;overflow:hidden;background:var(--panel)}
+.dmmsgs{flex:1;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:8px}
+.dmmsg{max-width:70%;align-self:flex-start;background:var(--panel2);border:1px solid var(--line);border-radius:14px 14px 14px 4px;padding:9px 13px;font-size:13.5px;position:relative}
+.dmmsg.me{align-self:flex-end;background:linear-gradient(120deg,rgba(124,92,255,.25),rgba(42,209,255,.18));border-radius:14px 14px 4px 14px}
+.dmmsg .t{display:block;font-family:var(--fm);font-size:10px;color:var(--dim);margin-top:4px;text-align:right}
+.dminput{display:flex;gap:9px;padding:12px;border-top:1px solid var(--line)}
+.dminput input{flex:1}
+@media(max-width:820px){.dmwrap{grid-template-columns:1fr;height:auto}.dmlist{max-height:200px}}
+/* ☀️ 라이트 모드 — 변수 반전으로 글자/배경 자동 대비 */
+body.light{
+  --bg:#F5F7FC; --bg2:#FFFFFF; --panel:rgba(23,28,48,.035); --panel2:rgba(23,28,48,.06);
+  --line:rgba(23,28,48,.1); --line2:rgba(23,28,48,.17);
+  --ink:#1A2038; --ink-strong:#0B0E1C; --mut:#5B6486; --dim:#8A91AD; --faint:#AEB4CC;
+  --glass:rgba(255,255,255,.66); --glassbd:rgba(23,28,48,.1);
+  --shadow:0 18px 46px rgba(30,36,80,.12), inset 0 1px 0 rgba(255,255,255,.7);
+}
+body.light::before{background:radial-gradient(900px 500px at 88% -10%,rgba(124,92,255,.1),transparent 60%),radial-gradient(700px 460px at -8% 108%,rgba(42,209,255,.08),transparent 55%)}
+body.light .top{background:rgba(255,255,255,.72)}
+body.light input,body.light textarea,body.light select{background:rgba(23,28,48,.04);color:var(--ink)}
+body.light ::-webkit-scrollbar-thumb{background:rgba(23,28,48,.16)}
+body.light #toast{background:rgba(255,255,255,.96);color:var(--ink)}
+body.light .btn.pri,body.light .tb.on{color:#0B0E1C}
+body.light .bmove button{background:rgba(23,28,48,.03)}
+body.light .warnbox{color:#7A4300;background:rgba(255,168,40,.15);border-color:rgba(190,110,0,.38)}
+body.light .warnbox b{color:#5A3200}
+body.light .ring{background:radial-gradient(closest-side,var(--bg2) 78%,transparent 80%),conic-gradient(var(--a1) calc(var(--p)*1%),rgba(23,28,48,.13) 0)}
+body.light .bar,body.light .lvlbar{background:rgba(23,28,48,.1)}
+/* 📒 집행 대장 */
+.ledhero{border:1px solid var(--line);border-radius:18px;padding:24px 26px;background:linear-gradient(150deg,rgba(124,92,255,.18),rgba(42,209,255,.06));backdrop-filter:blur(18px) saturate(150%);box-shadow:var(--cardsh)}
+.ledhero .lbl{font-size:12.5px;color:var(--mut);font-weight:700}
+.ledhero .big{font-family:var(--fh);font-size:40px;font-weight:700;line-height:1.05;margin-top:4px}
+.ledhero .big span{font-size:18px;color:var(--mut);font-weight:600}
+.ledhero .sub2{font-size:12.5px;color:var(--mut);margin-top:9px}
+.ledhero .lnk{background:none;border:0;color:var(--a2);cursor:pointer;font-size:12px;font-weight:600;margin-left:4px;text-decoration:underline}
+.ledbar{height:9px;border-radius:6px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:14px;display:flex}
+.ledbar>span{display:block;height:100%;background:var(--good)}
+.ledbar>span.prov{background:var(--gold)}
+body.light .ledbar{background:rgba(23,28,48,.1)}
+.ledstat .lbl{font-size:12.5px;color:var(--mut);font-weight:700}
+.ledstat .lbl.gold{color:var(--gold)} .ledstat .lbl.good{color:var(--good)}
+.ledstat .num{font-family:var(--fh);font-size:26px;font-weight:700;margin-top:4px} .ledstat .num span{font-size:14px;color:var(--mut)}
+.ledstat .cap{font-size:11.5px;color:var(--dim);margin-top:3px}
+.ledlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:12px}
+.ledcard{border:1px solid var(--line);border-radius:14px;padding:15px 16px;background:var(--panel2);backdrop-filter:blur(16px) saturate(150%);cursor:pointer;transition:.15s;box-shadow:var(--cardsh)}
+.ledcard:hover{border-color:var(--a1);transform:translateY(-2px)}
+.lc-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:9px}
+.lc-title{font-weight:700;font-size:14px;line-height:1.35}
+.lc-bot{display:flex;justify-content:space-between;align-items:center;margin-top:11px;gap:8px}
+.lc-amt{font-family:var(--fh);font-weight:700;font-size:17px;white-space:nowrap} .lc-amt span{font-size:12px;color:var(--mut);margin-left:2px}
+.lc-date{font-family:var(--fm);font-size:11px;color:var(--dim);margin-top:8px}
+.ledst{font-family:var(--fm);font-size:11px;padding:3px 9px;border-radius:99px;font-weight:700;white-space:nowrap}
+.ledst.prov{background:rgba(255,194,75,.16);color:var(--gold)}
+.ledst.exec{background:rgba(61,220,151,.16);color:var(--good)}
+.led-dhead{display:flex;align-items:center;gap:10px}
+.led-amt{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-top:4px}
+.led-amt .lbl{font-size:11.5px;color:var(--mut);font-weight:700}
+.led-amt .v{font-family:var(--fh);font-size:28px;font-weight:700;margin-top:2px} .led-amt .v span{font-size:15px;color:var(--mut)}
+.led-content{white-space:pre-wrap;font-size:13.5px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.led-attach{font-size:13px;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;word-break:break-all}
+@media(max-width:820px){.ledhero .big{font-size:32px}.ledlist{grid-template-columns:1fr}}
+
+/* 담당자 이름칩 */
+.wchip{display:inline-flex;align-items:center;gap:5px;padding:2px 9px 2px 2px;border-radius:999px;border:1px solid var(--line);font-size:11.5px;font-weight:600;color:var(--ink);line-height:1;white-space:nowrap;vertical-align:middle}
+.wchip .we{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;font-size:11px;flex:none}
+/* 태스크 반응·댓글 */
+.social{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.rchip{display:inline-flex;align-items:center;gap:3px;padding:2px 9px;border-radius:999px;border:1px solid var(--line);background:var(--panel);font-size:11.5px;cursor:pointer;user-select:none;line-height:1.7;transition:.15s}
+.rchip:hover{border-color:var(--a1)}
+.rchip.me{border-color:var(--a1);background:rgba(124,92,255,.16);color:var(--ink)}
+.rchip.add{color:var(--dim);font-weight:600}
+.repick{display:inline-flex;gap:5px;flex-wrap:wrap}
+.repick button{font-size:16px;background:var(--panel);border:1px solid var(--line);border-radius:9px;width:36px;height:33px;cursor:pointer;transition:.15s}
+.repick button:hover{border-color:var(--a1);transform:translateY(-1px)}
+.tcmt{display:flex;gap:8px;margin-top:9px;align-items:flex-start}
+.tcmt .cb{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:7px 11px;font-size:13px;flex:1}
+/* 보드 담당자 필터 */
+.bfilter{display:flex;gap:7px;flex-wrap:wrap;margin:2px 0 14px}
+.bfilter .fchip{cursor:pointer;padding:4px 12px;border-radius:999px;border:1px solid var(--line);font-size:12px;font-weight:600;color:var(--mut);display:inline-flex;align-items:center;gap:5px;transition:.15s}
+.bfilter .fchip:hover{border-color:var(--a1)}
+.bfilter .fchip.on{background:rgba(124,92,255,.16);border-color:var(--a1);color:var(--ink)}
+/* 마감 긴급도 */
+.chip.due-over{color:var(--bad)!important;border-color:rgba(255,107,129,.5)!important}
+.chip.due-soon{color:var(--gold)!important;border-color:rgba(255,194,75,.5)!important}
+.thtoggle{width:30px;height:30px;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--mut);cursor:pointer;font-size:15px}
+.thtoggle:hover{border-color:var(--a1)}
+.tag{font-family:var(--fm);font-size:11px;padding:3px 9px;border-radius:7px;border:1px solid var(--line)}
+.stat{font-family:var(--fh);font-size:30px;font-weight:700}
+.lvlbar{height:6px;border-radius:5px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:6px}
+.lvlbar>span{display:block;height:100%;background:linear-gradient(90deg,var(--gold),#FF9F4B)}
+@media(max-width:820px){#app{grid-template-columns:1fr}.side{position:fixed;left:-240px;transition:.3s;z-index:90;height:100%;box-shadow:0 0 40px rgba(0,0,0,.6)}.side.open{left:0}.top,.main{grid-column:1}.dday{display:none}.ham{display:block}}
+
+/* ============ 글래스모피즘 리디자인 ============ */
+:root{
+  --bg:#06080F; --bg2:#0C1120;
+  --panel:linear-gradient(160deg,rgba(255,255,255,.06),rgba(255,255,255,.022));
+  --panel2:linear-gradient(160deg,rgba(255,255,255,.095),rgba(255,255,255,.04));
+  --line:rgba(255,255,255,.11); --line2:rgba(255,255,255,.2);
+  --glass:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.03)); --glassbd:rgba(255,255,255,.16);
+  --shadow:0 26px 64px -22px rgba(0,0,0,.78),inset 0 1px 0 rgba(255,255,255,.09);
+  --cardsh:0 12px 32px -18px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,.06);
+}
+body::before{background:
+  radial-gradient(1200px 760px at 84% -14%,rgba(124,92,255,.24),transparent 60%),
+  radial-gradient(1000px 680px at -12% 112%,rgba(42,209,255,.16),transparent 55%),
+  radial-gradient(820px 820px at 62% 118%,rgba(255,110,190,.07),transparent 66%),
+  linear-gradient(180deg,#080B18,#05070E)}
+.panel,.bcol,.bcard,.task,.fbitem,.badge,.pendcard,.dmlist,.dmthread{backdrop-filter:blur(17px) saturate(150%);-webkit-backdrop-filter:blur(17px) saturate(150%)}
+.panel,.bcol,.task,.fbitem{box-shadow:var(--cardsh)}
+.bcard{box-shadow:0 8px 20px -14px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05)}
+.side{backdrop-filter:blur(22px) saturate(140%)}
+body:not(.light) .side{background:linear-gradient(180deg,rgba(14,19,36,.68),rgba(9,12,24,.74))}
+body:not(.light) .top{background:linear-gradient(180deg,rgba(12,16,30,.64),rgba(12,16,30,.4))}
+body:not(.light) .modal .box,body:not(.light) #palette .pbox{background:linear-gradient(165deg,rgba(24,30,52,.9),rgba(13,17,32,.93))}
+body:not(.light) .card{background:linear-gradient(165deg,rgba(24,30,52,.84),rgba(13,17,32,.9))}
+body.light .side{background:rgba(255,255,255,.66)}
+body.light .panel,body.light .bcol,body.light .task,body.light .fbitem{box-shadow:0 10px 26px -18px rgba(40,50,90,.35),inset 0 1px 0 rgba(255,255,255,.5)}
+/* 버튼 확대·강조 */
+.btn{padding:11px 18px;border-radius:12px}
+.btn.pri{box-shadow:0 10px 24px -8px rgba(124,92,255,.55),inset 0 1px 0 rgba(255,255,255,.22);font-size:14.5px;padding:12px 20px}
+.btn.pri:hover{box-shadow:0 15px 32px -8px rgba(124,92,255,.72)}
+.vhead .btn.pri{font-size:15px;padding:13px 22px;border-radius:13px}
+/* 카드 새 요소 */
+.viewbtn{margin-top:9px;background:var(--panel);border:1px solid var(--line2);color:var(--ink);border-radius:9px;padding:6px 12px;font-size:12px;font-weight:600;cursor:pointer;display:inline-flex;gap:5px;align-items:center;transition:.15s}
+.viewbtn:hover{border-color:var(--a1);background:rgba(124,92,255,.14)}
+.cardcmts{margin-top:9px;border-top:1px solid var(--line);padding-top:9px;display:flex;flex-direction:column;gap:6px}
+.ccmt{display:flex;gap:6px;align-items:flex-start;font-size:12px;line-height:1.45}
+.ccmt .cca{flex:none;width:18px;height:18px;border-radius:50%;display:inline-grid;place-items:center;font-size:10.5px}
+.ccmt .cct{color:var(--mut)} .ccmt .cct b{font-size:11.5px;color:var(--ink)}
+.cmore{font-size:11.5px;color:var(--a2);cursor:pointer;font-weight:600;margin-top:2px}
+.cardcmt-add{display:flex;gap:6px;margin-top:9px}
+.cardcmt-add input{padding:8px 11px;font-size:12.5px;border-radius:9px}
+.bfoot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:10px;padding-top:9px;border-top:1px solid var(--line)}
+.draghandle{background:var(--panel);border:1px dashed var(--line2);color:var(--mut);border-radius:8px;padding:6px 11px;font-size:11px;font-weight:600;cursor:grab;display:inline-flex;gap:5px;align-items:center;transition:.15s;white-space:nowrap}
+.draghandle:hover{border-color:var(--a1);color:var(--ink);background:rgba(124,92,255,.12)}
+.draghandle:active{cursor:grabbing}
+.bmove button{width:28px;height:26px}
+.bcard.dragging{opacity:.45;transform:scale(.98)}
+.bcard.dropbefore{box-shadow:0 -3px 0 -1px var(--a1),0 8px 20px -14px rgba(0,0,0,.55)}
+.bcard.dropafter{box-shadow:0 3px 0 -1px var(--a1),0 8px 20px -14px rgba(0,0,0,.55)}
+.bcol-list.dropend{outline:2px dashed var(--a1);outline-offset:-4px;border-radius:12px}
+/* 체크리스트 빌더 */
+.subrow{display:flex;gap:7px;margin-bottom:7px}
+.subrow .subin{flex:1;min-width:0}
+.subrow .subx{flex:none;width:40px;border:1px solid var(--line);background:var(--panel);color:var(--mut);border-radius:9px;cursor:pointer}
+.subrow .subx:hover{border-color:var(--bad);color:var(--bad)}
+/* 독립 스크롤 (데스크톱) */
+@media(min-width:821px){
+  .board3{align-items:stretch}
+  .bcol{display:flex;flex-direction:column;max-height:calc(100vh - 232px)}
+  .bcol-list{overflow-y:auto;overflow-x:hidden;flex:1;padding-right:5px;margin-right:-3px}
+}
+/* 모바일 개편 (PC 구조 유지) */
+@media(max-width:820px){
+  .main{padding:16px 13px 64px}
+  .view{max-width:100%}
+  .vhead{gap:10px;align-items:stretch}
+  .vhead h1{font-size:21px}
+  .vhead .btn,.vhead .btn.pri{width:100%;justify-content:center}
+  .board3{grid-template-columns:1fr;gap:12px}
+  .bcol{max-height:none}
+  .bfilter{flex-wrap:nowrap;overflow-x:auto;padding-bottom:5px;-webkit-overflow-scrolling:touch}
+  .bfilter .fchip{flex:none}
+  .top{padding:0 13px;gap:10px}
+  .top .search{max-width:none;min-width:0}
+  .top .search kbd{display:none}
+  .me .nm,.me .ro{display:none}
+  .modal .box{padding:18px;max-height:92vh}
+  .btn{padding:12px 16px}
+  .draghandle{display:none}
+  .dmwrap{height:auto}
+  .grid.g2,.grid.g3,.grid.g4{grid-template-columns:1fr}
+}
+
+
+/* ============ 가독성 · 대비 · 호버 강화 ============ */
+:root{
+  --line:rgba(255,255,255,.16); --line2:rgba(255,255,255,.3);
+  --panel:linear-gradient(160deg,rgba(255,255,255,.08),rgba(255,255,255,.03));
+  --panel2:linear-gradient(160deg,rgba(255,255,255,.13),rgba(255,255,255,.06));
+  --mut:#B6BEDD; --dim:#8A93B7;
+}
+body.light{
+  --line:rgba(23,28,48,.18); --line2:rgba(23,28,48,.32);
+  --panel:rgba(23,28,48,.05); --panel2:rgba(23,28,48,.09);
+  --mut:#46507A; --dim:#697396;
+}
+body{font-size:15px;font-weight:450}
+.vhead h1{font-size:28px}
+.vhead .sub{font-size:14px;color:var(--mut);font-weight:500}
+.tt{font-size:15.5px;font-weight:700}
+.bcard .tt{font-size:14.5px;font-weight:700}
+label{font-size:13px;color:var(--mut);font-weight:700}
+.panel h3{font-size:16px}
+.chip{font-size:12.5px;font-weight:600;border-color:var(--line2)}
+.pri{font-size:11.5px;font-weight:800}
+.wchip{font-size:12.5px;font-weight:700}
+.sub{font-size:13px}
+.act{font-size:13.5px}
+.navi{font-size:14.5px;font-weight:600}
+.me .nm{font-size:14px}
+.badge .bn{font-size:12px;color:var(--mut);font-weight:600}
+.dchip,.cap,.lc-date{font-weight:600}
+.tmeta{gap:9px}
+/* 커서 · 호버 상태 */
+.btn,.chip[onclick],.rchip,.fchip,.viewbtn,.stsel,.navi,.ledcard,.accpick,.me,.tb,.thtoggle,.help,.mclose,.draghandle,.bmove button,.repick button,.lnk,summary{cursor:pointer}
+.btn{transition:.16s var(--ease)}
+.btn:hover{border-color:var(--a1);transform:translateY(-1px);filter:brightness(1.06)}
+.btn.gho{border-color:var(--line2);color:var(--ink)}
+.btn.gho:hover{background:rgba(124,92,255,.14);border-color:var(--a1)}
+.btn.pri:hover{filter:brightness(1.1)}
+.btn:active{transform:translateY(0) scale(.985)}
+.chip[onclick]:hover{border-color:var(--a1);color:var(--ink)}
+.rchip:hover,.fchip:hover,.viewbtn:hover{border-color:var(--a1);background:rgba(124,92,255,.12);color:var(--ink)}
+.navi:hover{background:var(--panel2)}
+.ledcard:hover{border-color:var(--a1)}
+.task:hover,.bcard:hover,.fbitem:hover{border-color:var(--line2)}
+/* 상태 선택 드롭다운(진행중→완료 오점프 해결) */
+.stsel{font-family:var(--fm);font-size:12px;font-weight:700;padding:3px 6px 3px 9px;border-radius:99px;border:1px solid var(--line2);background:var(--panel2);color:var(--mut);width:auto;min-width:74px}
+.stsel.st-doing{color:var(--a2);border-color:rgba(42,209,255,.55)}
+.stsel.st-done{color:var(--good);border-color:rgba(61,220,151,.55)}
+.stsel:hover{border-color:var(--a1)}
+.stsel option{background:var(--bg2);color:var(--ink)}
+/* 영수증 · 결재 */
+.rcprev{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.rcprev img{max-width:100%;max-height:190px;border-radius:10px;border:1px solid var(--line2)}
+.rcimg{max-width:100%;max-height:360px;border-radius:12px;border:1px solid var(--line2);margin-top:8px;cursor:zoom-in;display:block}
+.led-settle{font-size:13.5px;font-weight:600;border-radius:11px;padding:11px 13px;margin-top:5px}
+.led-settle.ok{background:rgba(61,220,151,.15);color:var(--good);border:1px solid rgba(61,220,151,.45)}
+.led-settle.wait{background:rgba(255,194,75,.13);color:var(--gold);border:1px solid rgba(255,194,75,.45)}
+.lc-foot{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:9px;padding-top:9px;border-top:1px solid var(--line)}
+.rctag{font-family:var(--fm);font-size:11px;font-weight:700;padding:3px 8px;border-radius:99px;background:var(--panel);border:1px solid var(--line2);color:var(--mut)}
+.rctag.none{color:var(--dim)}
+.setl{font-family:var(--fm);font-size:11px;font-weight:800;padding:3px 8px;border-radius:99px}
+.setl.ok{background:rgba(61,220,151,.18);color:var(--good)}
+.setl.wait{background:rgba(255,194,75,.18);color:var(--gold)}
+.lbl-s{font-size:12px;color:var(--mut);font-weight:700;margin-bottom:3px}
+/* ============ 칩 대비 정밀 보정 (라이트 우선) ============ */
+/* 다크: 금색 계열 살짝 더 밝게 */
+.pri.m{color:#FFD173}
+.ledst.prov,.setl.wait{color:#FFD173}
+.hg-prov{color:var(--gold)} .hg-exec{color:var(--good)}
+/* 라이트: 밝은 배경 위 밝은 글씨 방지 → 짙은 톤으로 */
+body.light .pri.h{color:#D42A45;background:rgba(255,90,110,.15)}
+body.light .pri.m{color:#8F5D00;background:rgba(255,176,32,.22)}
+body.light .pri.l{color:#535C82;background:rgba(23,28,48,.08)}
+body.light .st-doing,body.light .stsel.st-doing{color:#0A79A0;border-color:rgba(10,121,160,.5)}
+body.light .st-done,body.light .stsel.st-done{color:#0B8B5C;border-color:rgba(11,139,92,.5)}
+body.light .stsel{color:#495378}
+body.light .ledst.prov,body.light .setl.wait,body.light .ledstat .lbl.gold,body.light .hg-prov{color:#8F5D00}
+body.light .ledst.prov{background:rgba(255,176,32,.22)}
+body.light .setl.wait{background:rgba(255,176,32,.24)}
+body.light .ledst.exec,body.light .setl.ok,body.light .ledstat .lbl.good,body.light .hg-exec{color:#0B8B5C}
+body.light .ledst.exec{background:rgba(11,139,92,.15)}
+body.light .setl.ok{background:rgba(11,139,92,.16)}
+body.light .led-settle.wait{color:#7A4C00;background:rgba(255,176,32,.16);border-color:rgba(185,125,0,.45)}
+body.light .led-settle.ok{color:#0A7A50;background:rgba(11,139,92,.14);border-color:rgba(11,139,92,.4)}
+body.light .rchip.me{color:#4A34C4;background:rgba(124,92,255,.16)}
+body.light .dchip b{color:#8A5A00}
+body.light .tag,body.light .chip{color:#495378}
+body.light .rctag{color:#495378}
+/* ============ 팀 보드 카드 리디자인 (콘텐츠 우선·진행형 노출) ============ */
+.bcard{border-left:3px solid var(--acc,var(--line2));padding:12px 14px;margin-bottom:10px;cursor:pointer;transition:.16s var(--ease)}
+.bcard:hover{border-color:var(--line2);transform:translateY(-1px);box-shadow:0 14px 28px -14px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.05)}
+.bcard .tt{font-size:14px;font-weight:700;line-height:1.42;letter-spacing:-.01em}
+.bcard .tmeta{margin-top:9px;gap:6px}
+.bsocial{display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:8px}
+.minfo{font-family:var(--fm);font-size:11px;font-weight:700;color:var(--mut);background:var(--panel);border:1px solid var(--line2);border-radius:99px;padding:2px 9px;cursor:pointer;transition:.14s}
+.minfo:hover{border-color:var(--a1);color:var(--ink)}
+.cardcmts{margin-top:8px;border-top:0;padding-top:0;gap:5px}
+.ck.done{color:var(--good);border-color:rgba(61,220,151,.4)}
+body.light .ck.done{color:#0B8B5C}
+/* 진행형 노출: 평상시 숨김 → hover(데스크톱) 등장 · 터치는 항상 */
+.bhover{max-height:0;opacity:0;overflow:hidden;transition:max-height .2s var(--ease),opacity .16s,margin-top .2s}
+.bhover .cardcmt-add{margin-top:0}
+.bhover .bfoot{margin-top:8px;padding-top:8px;border-top:1px solid var(--line);justify-content:space-between}
+@media (hover:hover){.bcard:hover .bhover{max-height:150px;opacity:1;margin-top:10px}}
+@media (hover:none){.bhover{max-height:none;opacity:1;margin-top:10px}}
+.rq{display:inline-flex;gap:5px;align-items:center}
+.qreact{width:30px;height:28px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);cursor:pointer;font-size:14px;transition:.14s}
+.qreact:hover{border-color:var(--a1);background:rgba(124,92,255,.12);transform:translateY(-1px)}
+.bmv{width:30px;height:28px;border-radius:8px;border:1px solid var(--line2);background:var(--panel);color:var(--mut);cursor:pointer;font-size:12px;transition:.14s}
+.bmv:hover{border-color:var(--a1);color:var(--ink)}
+.bhover .draghandle{padding:6px 10px;font-size:11px}
+/* 컬럼 상태 색 */
+.bcol{border-top:3px solid var(--line2)}
+.bcol.col-todo{border-top-color:rgba(154,164,200,.45)}
+.bcol.col-doing{border-top-color:var(--a2)}
+.bcol.col-done{border-top-color:var(--good)}
+.bcolh.st-doing .cnt{color:var(--a2)}
+.bcolh.st-done .cnt{color:var(--good)}
+.bcol.col-done .bcard .tt{opacity:.86}
+/* 체크리스트 편집(상세 모달) */
+.subst{flex:none;width:22px;height:22px;border-radius:7px;border:1.5px solid var(--line2);display:grid;place-items:center;font-size:12px;color:#0a0a14;align-self:center}
+.subst.on{background:var(--good);border-color:transparent}
+/* 태스크 삭제 버튼(호버 시 표시) */
+.task{position:relative}
+.tdel{position:absolute;top:11px;right:13px;background:none;border:1px solid transparent;color:var(--faint);font-size:12px;font-weight:600;border-radius:8px;padding:3px 9px;cursor:pointer;opacity:0;transition:.15s}
+.task:hover .tdel{opacity:1}
+.tdel:hover{color:var(--bad);border-color:rgba(255,107,129,.4)}
+@media (hover:none){.tdel{opacity:.7}}
+/* 보드 카드 hover 상태 셀렉트 */
+.bfoot .stsel{min-width:86px}
+
+/* 🔔 알림 */
+.ntwrap{position:relative}
+.ntbdg{position:absolute;top:-5px;right:-6px;background:var(--bad);color:#fff;font-family:var(--fm);font-size:9.5px;font-weight:800;border-radius:99px;padding:1px 5px;min-width:15px;text-align:center;line-height:1.4}
+.ntpanel{position:absolute;right:0;top:40px;width:335px;max-height:440px;overflow:auto;z-index:130;border:1px solid var(--glassbd);border-radius:15px;box-shadow:var(--shadow);backdrop-filter:blur(20px)}
+body:not(.light) .ntpanel{background:linear-gradient(165deg,rgba(24,30,52,.97),rgba(13,17,32,.98))}
+body.light .ntpanel{background:rgba(255,255,255,.98)}
+.nthead{display:flex;justify-content:space-between;align-items:center;padding:13px 15px;border-bottom:1px solid var(--line);font-size:14px}
+.nthead .lnk{background:none;border:0;color:var(--a2);font-size:12px;font-weight:700;cursor:pointer}
+.ntitem{display:flex;gap:10px;padding:11px 15px;border-bottom:1px solid var(--line);cursor:pointer;align-items:flex-start;transition:.13s}
+.ntitem:hover{background:var(--panel2)}
+.ntitem.un{background:rgba(124,92,255,.1)}
+.ntitem.un:hover{background:rgba(124,92,255,.16)}
+.nt-t{font-size:12.8px;line-height:1.5;color:var(--ink)}
+.nt-t .when{display:block;font-family:var(--fm);font-size:10.5px;color:var(--dim);margin-top:3px}
+@media(max-width:820px){.ntpanel{position:fixed;left:10px;right:10px;top:62px;width:auto}}
+/* @멘션 */
+.mention{font-weight:800}
+#mdrop{position:fixed;z-index:230;width:212px;border:1px solid var(--glassbd);border-radius:12px;box-shadow:var(--shadow);overflow:hidden;backdrop-filter:blur(18px)}
+body:not(.light) #mdrop{background:linear-gradient(165deg,rgba(24,30,52,.97),rgba(13,17,32,.98))}
+body.light #mdrop{background:rgba(255,255,255,.98)}
+.mopt{display:flex;gap:9px;align-items:center;padding:9px 12px;cursor:pointer;font-size:13.5px;font-weight:600}
+.mopt:hover{background:var(--panel2)}
+/* 심사 대기 · IR 노트 */
+.ledst.pend{background:rgba(154,164,200,.16);color:var(--mut)}
+body.light .ledst.pend{color:#535C82;background:rgba(23,28,48,.09)}
+.irnote{font-size:12.5px;font-weight:600;color:var(--gold);background:rgba(255,194,75,.1);border:1px solid rgba(255,194,75,.35);border-radius:10px;padding:9px 12px;margin-bottom:10px}
+body.light .irnote{color:#8F5D00;background:rgba(255,176,32,.14)}
+/* 범례 */
+.olegend{display:flex;gap:13px;flex-wrap:wrap;align-items:center}
+.oleg{display:inline-flex;gap:6px;align-items:center;font-size:12.5px;color:var(--mut);font-weight:600;white-space:nowrap}
+.oleg i{width:10px;height:10px;border-radius:50%;display:inline-block;flex:none}
+/* 🗓 팀 타임라인 */
+.tlwrap{border:1px solid var(--line);border-radius:18px;background:var(--panel);backdrop-filter:blur(16px) saturate(150%);box-shadow:var(--cardsh);overflow-x:auto;-webkit-overflow-scrolling:touch}
+.tlhead,.tlrow{display:grid;grid-template-columns:170px 1fr 62px;min-width:930px;align-items:stretch}
+.tlrow{border-top:1px solid var(--line)}
+.tlrow:hover{background:rgba(255,255,255,.015)}
+.tllabel{display:flex;gap:10px;align-items:center;padding:13px 14px;border-left:3px solid var(--acc,transparent);cursor:pointer;position:sticky;left:0;z-index:2;transition:.15s}
+body:not(.light) .tllabel{background:rgba(13,18,34,.96)}
+body.light .tllabel{background:rgba(250,251,255,.97)}
+.tllabel:hover b{color:var(--a2)}
+.tllabel b{font-size:13.5px;display:block;line-height:1.25}
+.tllabel span{font-size:11px;color:var(--dim);font-weight:600}
+.tllabel.h{cursor:default;font-size:12px;color:var(--dim);font-weight:800;border-left-color:transparent}
+.tllabel.h:hover b{color:inherit}
+.tlcells{display:grid}
+.tlday{padding:10px 4px 8px;text-align:center;font-size:10px;color:var(--dim);font-weight:700;border-left:1px solid rgba(255,255,255,.045);position:relative}
+body.light .tlday{border-left-color:rgba(23,28,48,.06)}
+.tlday b{display:block;font-size:12.5px;color:var(--ink);font-family:var(--fm)}
+.tlday.today b,.tlday.today{color:var(--a2)}
+.tlday .tlflag{position:absolute;top:4px;right:5px;font-style:normal;font-size:11px}
+.tlcell{border-left:1px solid rgba(255,255,255,.045);padding:8px 6px;display:flex;flex-direction:column;gap:5px;min-height:60px;justify-content:flex-start}
+body.light .tlcell{border-left-color:rgba(23,28,48,.06)}
+.tlcell.today,.tlday.today{background:rgba(42,209,255,.06)}
+.tlcell.wknd,.tlday.wknd{background:rgba(255,255,255,.014)}
+body.light .tlcell.wknd,body.light .tlday.wknd{background:rgba(23,28,48,.025)}
+.tlnode{display:inline-flex;gap:5px;align-items:center;border:1px solid var(--line2);border-radius:8px;padding:3px 7px;font-size:11px;font-weight:700;cursor:pointer;transition:.15s;max-width:100%;background:var(--panel)}
+.tlnode i{width:8px;height:8px;border-radius:50%;flex:none;background:#8A93B7}
+.tlnode em{font-style:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.tlnode:hover{border-color:var(--a1);transform:translateY(-1px)}
+.tlnode.doing{border-color:rgba(42,209,255,.5);background:rgba(42,209,255,.08)}
+.tlnode.doing i{background:var(--a2)} .tlnode.doing em{color:var(--a2)}
+.tlnode.done{border-color:rgba(61,220,151,.4);background:rgba(61,220,151,.06)}
+.tlnode.done i{background:var(--good)} .tlnode.done em{color:var(--good);opacity:.85}
+.tlnode.urgent{border-color:rgba(255,107,129,.6);background:rgba(255,107,129,.09)}
+.tlnode.urgent i{background:var(--bad);animation:tlpulse 1.2s infinite} .tlnode.urgent em{color:var(--bad)}
+@keyframes tlpulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,129,.5)}50%{box-shadow:0 0 0 5px rgba(255,107,129,0)}}
+@media (prefers-reduced-motion: reduce){.tlnode.urgent i{animation:none}}
+body.light .tlnode.doing em{color:#0A79A0} body.light .tlnode.done em{color:#0B8B5C} body.light .tlnode.urgent em{color:#D42A45}
+.tlno{display:flex;align-items:center;justify-content:center;padding:8px;border-left:1px solid rgba(255,255,255,.045)}
+body.light .tlno{border-left-color:rgba(23,28,48,.06)}
+.tlno.h{font-size:10.5px;color:var(--dim);font-weight:800;text-align:center}
+.tlnochip{font-family:var(--fm);font-size:11px;font-weight:800;border:1px dashed var(--line2);border-radius:99px;padding:3px 10px;color:var(--mut);cursor:pointer;transition:.15s}
+.tlnochip:hover{border-color:var(--a1);color:var(--ink)}
+.tlnozero{color:var(--faint);font-size:11px}
+.tlhint{font-size:12.5px;color:var(--dim);margin-top:11px;font-weight:500}
+@media(max-width:820px){.tlhead,.tlrow{grid-template-columns:130px 1fr 60px;min-width:820px}.tllabel{padding:11px 9px}.tllabel span{display:none}}
+/* 📢 공지사항 */
+.ntcbanner{display:flex;gap:10px;align-items:center;border:1px solid rgba(255,194,75,.4);background:rgba(255,194,75,.09);border-radius:13px;padding:11px 16px;margin-bottom:16px;cursor:pointer;font-size:13.5px;transition:.15s}
+.ntcbanner:hover{border-color:var(--gold);background:rgba(255,194,75,.14)}
+.ntcbanner b{color:var(--ink);font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ntcbanner span{flex:none;font-size:12px;font-weight:700;color:var(--gold)}
+body.light .ntcbanner span{color:#8F5D00}
+.ntc{border:1.5px solid var(--line);border-radius:16px;padding:18px 21px;margin-bottom:14px;background:var(--panel2);backdrop-filter:blur(14px)}
+.ntc.pin{border-color:rgba(255,194,75,.45)}
+.ntchead{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+.ntchead b{font-size:16.5px;font-weight:800;letter-spacing:-.01em}
+.ntcpin{flex:none;font-size:11px;font-weight:800;color:var(--gold);background:rgba(255,194,75,.14);border-radius:99px;padding:3px 10px}
+body.light .ntcpin{color:#8F5D00}
+.ntchead .when{font-family:var(--fm);font-size:11px;color:var(--dim)}
+.ntcops{margin-left:auto;display:flex;gap:4px}
+.lnk2{background:none;border:1px solid transparent;color:var(--dim);font-size:11.5px;font-weight:700;cursor:pointer;border-radius:7px;padding:3px 8px}
+.lnk2:hover{color:var(--ink);border-color:var(--line2)}
+.lnk2.bad:hover{color:var(--bad);border-color:rgba(255,107,129,.4)}
+.ntcbody{font-size:14.5px;line-height:1.85;white-space:pre-wrap;color:var(--ink)}
+.ntcbody b{color:var(--ink)}
+@media(max-width:820px){.ntcbody{font-size:14px}}
+
+
+
+
+</style>
+</head>
+<body>
+
+<!-- ===================== 랜딩/동의 ===================== -->
+<div class="overlay" id="landing">
+  <div class="card">
+    <div class="brandrow"><div class="logo">G</div><div><b style="font-family:var(--fh);font-size:20px">GRAVITY 팀 OS</b><div style="font-size:12.5px;color:var(--dim)">DeckFlip · 통합 프로젝트 관리</div></div></div>
+    <p style="color:var(--mut);font-size:14px;margin-top:6px">한 파일로 팀 전체를 관리합니다 — 역할·할 일·피드백·허브·진행상황을 한 곳에서.</p>
+    <div class="warnbox">
+      <b>⚠️ 민감정보 업로드 금지</b><br>
+      이 문서는 링크가 있으면 접근 가능한 공유 도구입니다. <b>비밀번호·계정정보·주민번호·연락처·카드번호·대외비(사업계획 원문 등)</b>는 절대 올리지 마세요.
+      입력 중 민감정보가 감지되면 자동으로 경고합니다. 자유 텍스트는 <b>종단간 암호화(E2E)</b>로 보호되지만, 애초에 올리지 않는 것이 가장 안전합니다.
+    </div>
+    <label style="display:flex;gap:9px;align-items:flex-start;cursor:pointer;font-size:13.5px;color:var(--mut)">
+      <input type="checkbox" id="agree" style="width:auto;margin-top:3px"> 위 내용을 읽었고, 민감정보를 올리지 않는 데 동의합니다
+    </label>
+    <button class="btn pri" id="enterBtn" style="width:100%;margin-top:18px;justify-content:center;opacity:.5;pointer-events:none">동의하고 시작하기</button>
+    <div style="font-size:11px;color:var(--faint);margin-top:14px;font-family:var(--fm);text-align:center">제작 · 이강원 · © 2026 · Made with DeckFlip</div>
+  </div>
+</div>
+
+<!-- ===================== 로그인 / 회원가입 ===================== -->
+<div class="overlay hidden" id="loginv">
+  <div class="card">
+    <div class="brandrow"><div class="logo">G</div><b style="font-family:var(--fh);font-size:19px">GRAVITY 팀 OS</b></div>
+    <div style="display:flex;gap:6px;margin:14px 0"><button class="tb on" id="tabLogin">로그인</button><button class="tb" id="tabSignup">회원가입</button></div>
+    <div id="paneLogin">
+      <p style="color:var(--dim);font-size:12.5px">팀원은 아래에서 바로 선택 · 개인 회원은 아이디로 로그인</p>
+      <div class="accgrid" id="accGrid"></div>
+      <div id="pwWrap" class="hidden" style="margin-top:14px">
+        <div id="pickedName" style="font-size:12.5px;color:var(--mut);margin-bottom:6px"></div>
+        <input type="password" id="pwInput" placeholder="비밀번호" autocomplete="off">
+        <div id="loginErr" style="color:var(--bad);font-size:12.5px;margin-top:8px"></div>
+        <button class="btn pri" id="loginBtn" style="width:100%;margin-top:12px;justify-content:center">들어가기</button>
+      </div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-size:12.5px;color:var(--a2)">개인 회원(아이디)으로 로그인</summary>
+        <div style="margin-top:10px"><input id="idInput" placeholder="아이디" autocomplete="off" style="margin-bottom:8px"><input type="password" id="idPw" placeholder="비밀번호" autocomplete="off">
+        <div id="idErr" style="color:var(--bad);font-size:12px;margin-top:6px"></div>
+        <button class="btn" id="idLoginBtn" style="width:100%;margin-top:10px;justify-content:center">로그인</button></div></details>
+    </div>
+    <div id="paneSignup" class="hidden">
+      <p style="color:var(--dim);font-size:12.5px">개인 회원으로 참여 — 팀장이 나중에 역할·할 일을 배정할 수 있어요</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div><label>아이디 <span style="color:var(--faint)">(영문·숫자)</span></label><input id="suId" placeholder="mydeck"></div>
+        <div><label>이름</label><input id="suName" placeholder="표시 이름"></div></div>
+      <div style="margin-top:10px"><label>역할</label><select id="suRole"><option>개발</option><option>디자인</option><option>마케팅</option><option>기획</option><option>기타</option></select></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+        <div><label>비밀번호</label><input type="password" id="suPw" placeholder="6자 이상"></div>
+        <div><label>비밀번호 확인</label><input type="password" id="suPw2" placeholder="한 번 더"></div></div>
+      <div id="suErr" style="color:var(--bad);font-size:12.5px;margin-top:8px"></div>
+      <button class="btn pri" id="signupBtn" style="width:100%;margin-top:14px;justify-content:center">가입하고 시작하기</button>
+    </div>
+    <div id="modeNote" style="font-size:11px;color:var(--faint);margin-top:16px;font-family:var(--fm);text-align:center"></div>
+  </div>
+</div>
+
+<!-- ===================== 승인 대기 ===================== -->
+<div class="overlay hidden" id="pending"><div class="card" style="text-align:center">
+  <div style="font-size:44px">⏳</div>
+  <h2 style="font-family:var(--fh);font-size:22px;margin:8px 0">승인 대기 중</h2>
+  <p style="color:var(--mut);font-size:14px" id="pendMsg">가입 요청이 접수됐어요. <b style="color:var(--ink)">팀장 승인</b> 후 이용할 수 있습니다.</p>
+  <button class="btn gho" style="margin-top:18px" onclick="logout()">다른 계정으로</button>
+</div></div>
+
+<!-- ===================== 앱 ===================== -->
+<div id="app" class="hidden">
+  <aside class="side" id="side">
+    <div class="brand"><div class="logo">G</div><b>GRAVITY</b></div>
+    <div class="navi on" data-v="dash"><span class="ic">◎</span>대시보드</div>
+    <div class="navi" data-v="notice"><span class="ic">📢</span>공지사항<span class="bdg" id="ntcBdg"></span></div>
+    <div class="navi" data-v="mine"><span class="ic">✓</span>내 할 일<span class="bdg" id="mineBdg"></span></div>
+    <div class="navi" data-v="board"><span class="ic">▦</span>팀 보드</div>
+    <div class="navi" data-v="timeline"><span class="ic">🗓</span>팀 타임라인</div>
+    <div class="navi" data-v="expense"><span class="ic">💸</span>비용 신청</div>
+    <div class="navi" data-v="ledger"><span class="ic">📒</span>집행 대장</div>
+    <div class="navi" data-v="feedback"><span class="ic">💬</span>피드백<span class="bdg" id="fbBdg"></span></div>
+    <div class="navi" data-v="dm"><span class="ic">✉️</span>쪽지<span class="bdg" id="dmBdg"></span></div>
+    <div class="navi" data-v="hub"><span class="ic">✦</span>허브 · 가이드</div>
+    <div class="navi" data-v="activity"><span class="ic">≋</span>활동로그</div>
+    <div class="foot">v4 · 통합관리<br><span id="sideMode"></span></div>
+  </aside>
+  <header class="top"><button class="ham" id="ham" aria-label="메뉴">☰</button>
+    <div class="search" id="openPal"><span>⌘</span> 빠른 검색·명령 <kbd>Ctrl K</kbd></div>
+    <div class="dday" id="ddayBar"></div>
+    <div class="sync" id="syncInd"><span class="dot local"></span><span>local</span></div>
+    <div class="ntwrap"><button class="thtoggle" id="ntBtn" title="알림">🔔<span class="ntbdg hidden" id="ntBdg"></span></button><div class="ntpanel hidden" id="ntPanel"></div></div>
+    <div id="mdrop" class="hidden"></div>
+    <button class="thtoggle" id="themeBtn" title="다크/라이트 전환">🌙</button>
+    <button class="help" id="helpBtn" title="도움말">?</button>
+    <div class="me" id="meBtn"><div class="av pfp" id="meAv"></div><div><div class="nm" id="meNm"></div><div class="ro" id="meRo"></div></div></div>
+  </header>
+  <main class="main"><div class="view" id="view"></div></main>
+</div>
+
+<div id="toast"></div>
+<div class="modal" id="modal"><div class="box"><button class="mclose" id="mclose" aria-label="닫기">✕</button><div id="modalBox"></div></div></div>
+<div id="palette"><div class="pbox"><input id="palInput" placeholder="명령 또는 검색… (할 일 추가, 피드백, 이동)"><div class="presult" id="palResult"></div></div></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+/* =====================================================================
+   GRAVITY 팀 OS — 단일 파일 통합 관리
+   데이터층: Supabase(실시간) 또는 localStorage(데모). 보안: Auth+RLS+E2E+민감정보 감지
+   ===================================================================== */
+
+/* ---------- 설정 (Supabase 켜려면 여기 두 줄만) ---------- */
+const CONFIG = {
+  SUPABASE_URL: "https://clpgbxfbnhyxstnystsh.supabase.co",
+  SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNscGdieGZibmh5eHN0bnlzdHNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODAyOTIsImV4cCI6MjA5ODc1NjI5Mn0.adOh4J5LfJU5IS2cCdX60O6odoxHKTMxexpYZs0vv4k",
+  E2E: true,
+  EMAIL_DOMAIN: "gravity.local"
+};
+
+/* ---------- 팀 (Gravity 프로젝트 분석 기반 역할) ---------- */
+const TEAM = [
+  {id:"kangwon", name:"이강원", pw:"kangwon", role:"팀장 · 총괄", color:"#7C5CFF", emoji:"🧭",
+    big:"파이프라인·사업계획서·활동비·IR 총괄. 방향을 잡고 각자 일을 잇는다."},
+  {id:"jaewoong",name:"황재웅", pw:"jaewoong",role:"CTO · 제품", color:"#2AD1FF", emoji:"⚙️",
+    big:"제품 개발·academic deck 데모·게시/생성 파이프라인. 데모가 곧 증거."},
+  {id:"hyunwoo", name:"이현우", pw:"hyunwoo", role:"인프라 · 보안", color:"#3DDC97", emoji:"🛡️",
+    big:"백엔드 인프라 스터디·구조 설계·도메인/서버·원가·보안. 확장의 토대."},
+  {id:"suji",    name:"이수지", pw:"suji",    role:"디자인", color:"#FF6B9D", emoji:"🎨",
+    big:"데모 영상·디자이너 관점 피드백·QAS 테스트. 보이는 완성도를 책임진다."},
+  {id:"yukyung", name:"황유경", pw:"yukyung", role:"마케팅 · 영상", color:"#FFC24B", emoji:"📣",
+    big:"인스타·IR 오프닝 영상·홍보. 숲 밖으로 이야기를 퍼뜨린다."},
+];
+function MEMBERS(){ const ids=[...new Set([...TEAM.map(t=>t.id),...(state.profiles||[]).map(p=>p.id)])].filter(i=>i!=="__settings"); return ids.map(byId); }
+async function loadProfiles(){ state.profiles=await DB.list("profiles"); }
+const byId = id => (state.profiles||[]).find(p=>p.id===id) || TEAM.find(t=>t.id===id) || {id,name:id,emoji:"·",color:"#888",role:""};
+
+/* ---------- 데드라인 ---------- */
+const DEADLINES = [
+  {d:"2026-07-11", t:"유경 포지셔닝 자료 · 수지 비교 연출안"},
+  {d:"2026-07-12", t:"IR 리허설 1차 · 덱 시각 검수"},
+  {d:"2026-07-13", t:"IR 발표자료 PDF 제출 (오전 목표)"},
+  {d:"2026-07-15", t:"기관별 본선 발표 · 17시 마켓홀 251동"},
+];
+
+/* ---------- 사이트 바로가기 (계정정보 없음 · 공용계정은 단톡 공지 참조) ---------- */
+const SITES=[
+  {g:"협업·문서", n:"Padlet 메인", u:"https://padlet.com/mydeckflip/main", ic:"🧩", d:"메인 보드"},
+  {g:"협업·문서", n:"Padlet TODO", u:"https://padlet.com/mydeckflip/todo", ic:"✅", d:"작업 칸반"},
+  {g:"협업·문서", n:"Linear", u:"https://linear.app/", ic:"📊", d:"이슈 트래커"},
+  {g:"협업·문서", n:"상호피드백 문서", u:"https://docs.google.com/document/d/1QqYc3ILwo_RAIkwrcyY3NFsixO_LcrqJ74WmeWmW4xw/edit", ic:"🗣️", d:"구글 문서"},
+  {g:"제품·개발", n:"DeckFlip qas", u:"https://qas.deckflip.net/", ic:"🚀", d:"제품(qas)"},
+  {g:"제품·개발", n:"소스코드 GitHub", u:"https://github.com/jwhwang91/DeckFlip", ic:"💻", d:"레포지토리"},
+  {g:"제품·개발", n:"OpenRouter", u:"https://openrouter.ai/", ic:"🤖", d:"AI API 라우터"},
+  {g:"제품·개발", n:"Sentry", u:"https://deckflip.sentry.io/", ic:"🐛", d:"에러 로깅"},
+  {g:"제품·개발", n:"DB 콘솔", u:"https://supabase.com/dashboard", ic:"🗄️", d:"데이터·인증 관리"},
+  {g:"창업활동비", n:"redwit 집행", u:"https://gravity.redwit.io/", ic:"💸", d:"승인·신청"},
+  {g:"창업활동비", n:"세부 사용범위", u:"https://docs.google.com/spreadsheets/d/14JMuBjq6Ejydw9KTaMJcdm_fVSeyUR73die9kPLfwlQ/edit?gid=914732563#gid=914732563", ic:"📗", d:"뭘 쓸 수 있나"},
+  {g:"창업활동비", n:"신청사유 템플릿", u:"https://docs.google.com/spreadsheets/d/1VZ191CAETsBFQYIKKtspimax9c629FQCZIltm3TfF7A/edit", ic:"📝", d:"예시 엑셀"},
+  {g:"창업활동비", n:"집행범위 가이드", u:"https://drive.google.com/drive/u/0/folders/1IRQxnXVYE_0u22ZAMx6gyza9YXu_eOpr", ic:"📁", d:"드라이브 폴더"},
+  {g:"설문", n:"발표자료 제작 설문", u:"https://forms.gle/b5c1xMHQC2T4ASTXA", ic:"📋", d:"발굴 설문"},
+];
+const AISOL=[
+  {n:"요비", u:"https://yo-b.com/", d:"AI 디자인 플랫폼", credit:"24,000 크레딧", exp:"2026-08-31"},
+  {n:"MonoGPT", u:"https://monogpt.kr/auth", d:"최고급 모델 전부(Fable5·Opus4.8·GPT-5.4 등)", credit:"250,000 크레딧", exp:"2026-07-31"},
+  {n:"매니패스트", u:"https://manyfast.io/ko/", d:"소프트웨어 기획 AI · PRO X3", credit:"PRO X3", exp:"2026-08-31"},
+];
+const FUNDRULES=[
+  {t:"집행 전 승인 필수", d:"redwit에서 승인 신청 → 승인된 것만 집행. 필요한 비용은 각자 직접 신청."},
+  {t:"결제 수단 고정", d:"제출한 통장사본 또는 이에 연결된 체크·신용카드로만 결제(다른 수단 불인정)."},
+  {t:"입금 후 사용", d:"승인을 받았어도 활동비가 통장에 입금된 후 사용 (7/6 입금 완료 · 카드 수령 시 개인톡 안내)."},
+  {t:"승인 시간", d:"매주 월·수·금 오전 10시에 담당자가 승인."},
+  {t:"양식 안 지키면 즉시 반려", d:"제목·세부사유·캡처를 양식대로. → 옆의 '비용 신청' 도우미가 자동 생성."},
+  {t:"50만원 이상", d:"집행 전 단톡방에서 팀원 논의 필요."},
+  {t:"AI 교육", d:"교육 후 수료증 필수."},
+  {t:"회의비", d:"외부 인원 1인 이상 포함 필수 · 1인 5만원까지 · 한도 117만원."},
+  {t:"출장비", d:"교통비(항공·기차·시외버스)+식비 1일 2.5만원+숙박 지역별 6~10만(울산 8만) · 한도 117만원."},
+  {t:"증빙", d:"지정양식 없으면 사전 협의 · 지출일로부터 7일 내 업로드."},
+  {t:"결제 후 증빙 첨부", d:"결제완료 화면 + 영수증/수료증을 redwit에 첨부 → 추후 Gravity가 월별 통장 거래내역과 대조."},
+];
+const DECKFLIP_INTRO="저희 팀의 창업아이템 'DeckFlip'은 인터랙티브 웹 발표자료를 생성·수정·관리·배포하는 AI 플랫폼(MVP 개발 완료, 고도화 단계)입니다.";
+function _kw(v){ return (Math.round(+v)||0).toLocaleString('ko-KR'); }
+function exWho(f){ return f.detail?`담당 팀원 ${f.user} — ${f.detail}.`:`담당 팀원 ${f.user}.`; }
+function exMoney(f){ if(f.usd>0){ const krw=Math.round(f.usd*(f.rate||1530));
+    return `[금액 산출 근거 — 원화 환산]\n${f.service}${f.plan?" "+f.plan:""} 월 $${f.usd} (공식 요금, 월간 결제 기준)\n× 적용환율 ${_kw(f.rate||1530)}원/$ ≈ ${_kw(krw)}원.\n환율 변동 및 해외결제 수수료를 고려하여 ${_kw(f.amount||krw)}원으로 신청하며, 실결제액 기준으로 사후 정산하겠습니다.`; }
+  return `[금액 산출 근거]\n신청 금액 ${_kw(f.amount)}원. 실결제액 기준으로 사후 정산하겠습니다.`; }
+const EXP_CATS=[
+  {id:"svid", n:"AI 영상 생성 구독", usd:true, sep:true,
+    title:f=>`${f.service}${f.plan?" "+f.plan:""} ${f.mon}월분 (${f.user})`,
+    lead:f=>`본 건은 DeckFlip 고도화에 사용하는 AI 영상 생성 플랫폼 '${f.service}'의 ${f.plan||"플랜"} 2026년 ${f.mon}월분(월 단위) 구독료입니다.`,
+    rel:f=>`[창업활동 연관성]\n1) DeckFlip이 생성하는 발표자료에는 인트로·전환용 시네마틱 모션 클립/배경 영상 에셋이 삽입되며, 이 영상 에셋을 AI로 생성·표준화하는 파이프라인을 ${f.mon}월 중 MVP에 통합하는 것이 개발 과제입니다. ${f.service}는 이 파이프라인 검증에 사용합니다.\n2) 7월 15일 기관별 본선 IR을 위한 제품 데모 영상(DeckFlip 작동 시연) 제작에도 사용합니다.\n3) ${exWho(f)}${f.sep?` 팀원 ${f.sep} 건과 계정·용도를 분리하여 병행 사용합니다.`:""} 7월분 월 구독이며, 이후 월도 필요 시 매월 별도 신청하겠습니다.`},
+  {id:"simg", n:"AI 이미지 생성 구독", usd:true, sep:true,
+    title:f=>`${f.service}${f.plan?" "+f.plan:""} ${f.mon}월분 (${f.user})`,
+    lead:f=>`본 건은 DeckFlip 고도화에 사용하는 AI 이미지 생성 툴 '${f.service}'의 ${f.plan||"플랜"} 2026년 ${f.mon}월분(월 단위) 구독료입니다.`,
+    rel:f=>`[창업활동 연관성]\n1) DeckFlip은 발표자료 생성 시 슬라이드에 삽입되는 고품질 이미지 에셋이 필수이며, 현재 이미지 자동 삽입 파이프라인과 템플릿용 이미지 라이브러리를 구축 중입니다. ${f.service}는 이 라이브러리의 원천 이미지 생성 툴입니다.\n2) 생성 이미지는 ①DeckFlip 템플릿 프리셋(발표자료 배경·비주얼 요소) ②7/15 기관별 본선 IR 자료 및 제품 데모 산출물 ③서비스 UI(랜딩페이지) 비주얼에 직접 사용됩니다.\n3) ${f.plan&&/pro/i.test(f.plan)?"Pro 플랜 선택 사유: 대량 생성과 스텔스(생성물 비공개)가 필요합니다. 템플릿 에셋은 제품 자산이라 공개 갤러리 노출을 차단해야 합니다. ":""}${exWho(f)} 7월분 월 구독이며, 이후 월도 필요 시 매월 별도 신청하겠습니다.`},
+  {id:"sapi", n:"API 충전 (서비스 소비)", usd:true, intro:false,
+    title:f=>`${f.service} 충전 (${f.user})`,
+    lead:f=>`본 건은 ${f.service} 크레딧 선불 충전입니다. OT에서 안내받은 대로 API는 월 구독이 아닌 충전식으로 신청합니다.`,
+    rel:f=>`[창업활동 연관성]\n1) DeckFlip 서비스는 사용자가 발표자료 생성을 요청하면 백엔드에서 ${f.service}를 호출하여 HTML 발표자료를 생성합니다. 이는 구독형과 별개로 '서비스 자체'가 소비하는 API 비용입니다.\n2) 실측 기준 발표자료 1건 생성에 약 $1.5가 소요되며, ${f.mon}월 중 초기 사용자 파일럿 테스트(목표 20명 이상, 1인당 수 회 생성) 및 내부 품질 QA를 위해 크레딧이 필요합니다.\n3) 프롬프트 인젝션·과다 사용 리스크 관리를 위해 일괄 대액 충전이 아닌 $100~200 단위 분할 충전 방식으로 운영합니다.${f.detail?"\n4) "+f.detail:""}`,
+    money:f=>{ const base=+f.usd||0, tax=Math.round(base*0.1), tot=base+tax, krw=Math.round(tot*(f.rate||1530));
+      return `[금액 산출 근거]\nAPI 사용 크레딧 $${base} + 예상 세금 $${tax} (10%) = 총 결제 금액 $${tot} (콘솔 구매 화면 기준)\n× 적용환율 ${_kw(f.rate||1530)}원/$ ≈ ${_kw(krw)}원.\n환율 변동 및 해외결제 수수료를 고려하여 ${_kw(f.amount||krw)}원으로 신청하며, 실결제액 기준으로 사후 정산하겠습니다.`; }},
+  {id:"sub", n:"일반 AI·SW 구독", usd:true,
+    title:f=>`${f.service}${f.plan?" "+f.plan:""} ${f.mon}월분 (${f.user})`,
+    lead:f=>`본 건은 DeckFlip 개발·운영에 사용하는 '${f.service}'의 ${f.plan||"구독"} 2026년 ${f.mon}월분(월 단위) 구독료입니다.`,
+    rel:f=>`[창업활동 연관성]\n1) ${f.detail||"DeckFlip 발표자료 생성 파이프라인의 개발·품질 개선·코드 작성·산출물 제작에 상시 사용합니다."}\n2) 7월 15일 기관별 본선 IR 발표자료·제품 데모 제작에도 직접 사용됩니다.\n3) ${exWho(f)} 이후 월도 필요 시 매월 별도 신청하겠습니다.`},
+  {id:"edu", n:"AI 교육", usd:false,
+    title:f=>`${f.service} 교육 (${f.user})`,
+    lead:f=>`본 건은 DeckFlip 제품 개발 역량 강화를 위한 '${f.service}' 교육 수강입니다.`,
+    rel:f=>`[창업활동 연관성]\n1) ${f.detail||"발표자료 자동 생성 파이프라인의 품질 향상에 직접 활용할 기술을 학습합니다."}\n2) 신청 시 플랫폼명·강의명·커리큘럼 링크를 함께 기재합니다.\n3) ${exWho(f)}\n※ 교육 수료 후 수료증 제출 필수.`},
+  {id:"meet", n:"회의비", usd:false, intro:false,
+    title:f=>`${f.mon}월분 팀 회의비 (${f.user})`,
+    lead:f=>`DeckFlip 프로젝트 진행을 위한 팀 회의 비용입니다. 외부 인원 1인 이상 포함하여 진행했으며, 1인 5만원 한도 내에서 집행했습니다.`,
+    rel:f=>`${f.detail?f.detail+"\n":""}※ 참석자·일시·장소 기재 + 영수증(외부 인원 포함 확인 가능) 첨부. 22~06시·주말은 인정되지 않습니다.`},
+  {id:"trip", n:"출장비", usd:false, intro:false,
+    title:f=>`${f.mon}월분 출장비 (${f.user})`,
+    lead:f=>`DeckFlip 관련 출장 비용입니다.${f.detail?" "+f.detail:""}`,
+    rel:f=>`교통비 + 식비(1일 2.5만원 이내) + 숙박비(지역 한도, 울산 8만원 이내)로 구성됩니다.\n※ 교통·숙박 영수증 및 출장 일정 캡처 첨부.`},
+  {id:"etc", n:"기타", usd:false,
+    title:f=>`${f.mon}월분 ${f.service} (${f.user})`,
+    lead:f=>`본 건은 DeckFlip 프로젝트에 필요한 '${f.service}' 집행입니다.`,
+    rel:f=>`[창업활동 연관성]\n1) ${f.detail||"프로젝트 진행·산출물 제작에 직접 사용됩니다."}\n2) ${exWho(f)}`},
+];
+function exBuild(f){ const cat=EXP_CATS.find(x=>x.id===f.catId)||EXP_CATS[0]; const parts=[];
+  if(cat.intro!==false) parts.push(DECKFLIP_INTRO);
+  parts.push(cat.lead(f)); const rel=cat.rel(f); if(rel) parts.push(rel);
+  parts.push(cat.money?cat.money(f):exMoney(f));
+  return {cat, title:cat.title(f), body:parts.filter(Boolean).join("\n\n")}; }
+
+/* ---------- 자동 태스크 템플릿 (키워드→체크리스트) ---------- */
+const TEMPLATES = [
+  {kw:["ir","발표자료","덱","피치"], sub:["원고·수치 확정(출처 포함)","파이프라인으로 덱 생성","시각 QA(오버플로·정렬)","PDF 변환·백업","리허설·타이밍 점검"]},
+  {kw:["영상","데모영상","촬영","편집"], sub:["컨셉·스토리보드","촬영/화면녹화","편집·컷","자막·BGM","팀 검수 후 확정"]},
+  {kw:["비용","신청","재신청","활동비","영수증"], sub:["결제 화면 캡처(로고+금액+월분)","세부설명 작성(제품·연관성)","redwit 제출","승인/반려 확인"]},
+  {kw:["인프라","백엔드","서버","보안","스터디","aws","원가"], sub:["자료 조사·레퍼런스","구조 설계 메모","원가 추정","IR 근거로 정리","팀 공유"]},
+  {kw:["디자인","시안","로고","ui","ux"], sub:["레퍼런스 수집","1차 시안","피드백 반영","최종 확정·에셋 정리"]},
+  {kw:["데모","academic","논문","생성"], sub:["입력 자료 준비","파이프라인 실행","결과 검수","개선점 기록","팀 공유"]},
+  {kw:["버그","수정","fix","커밋"], sub:["재현·원인 파악","수정","테스트","커밋·공유"]},
+  {kw:["회의","미팅","투표"], sub:["안건 정리","일정 투표","진행","결정사항 기록·공유"]},
+];
+function autoSubs(title, roleId){
+  const s=title.toLowerCase();
+  for(const t of TEMPLATES){ if(t.kw.some(k=>s.includes(k))) return t.sub.slice(); }
+  return ["시작","진행","검토","완료"];
+}
+
+/* ---------- 뱃지(게임화) ---------- */
+const BADGES=[
+  {id:"first",  bi:"🌱", bn:"첫 완료",       chk:s=>s.done>=1},
+  {id:"five",   bi:"🔥", bn:"5개 완료",      chk:s=>s.done>=5},
+  {id:"ten",    bi:"⭐", bn:"10개 완료",     chk:s=>s.done>=10},
+  {id:"triple", bi:"⚡", bn:"하루 3개",      chk:s=>s.maxDay>=3},
+  {id:"streak", bi:"📆", bn:"3일 연속",      chk:s=>s.streak>=3},
+  {id:"helper", bi:"🤝", bn:"피드백 5회",    chk:s=>s.fb>=5},
+];
+
+/* ---------- 민감정보 감지 ---------- */
+const SENS=[
+  {re:/[0-9]{6}\s?[-–]\s?[1-4][0-9]{6}/, n:"주민등록번호"},
+  {re:/\b(?:\d[ -]?){13,16}\b/, n:"카드/계좌번호"},
+  {re:/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/, n:"이메일"},
+  {re:/01[016-9][ -]?\d{3,4}[ -]?\d{4}/, n:"전화번호"},
+  {re:/(비밀번호|비번|password|passwd|pw)\s*[:=]?\s*\S{3,}/i, n:"비밀번호"},
+  {re:/(sk|pk|api[_-]?key|token)[_-]?[A-Za-z0-9]{12,}/i, n:"API 키/토큰"},
+  {re:/gmail|naver|redwit|비번|계정/i, n:"계정 관련 단어"},
+];
+function detectSensitive(txt){ const hits=[]; for(const s of SENS){ if(s.re.test(txt)) hits.push(s.n); } return [...new Set(hits)]; }
+
+/* ---------- E2E 암호화 (AES-GCM / PBKDF2) ---------- */
+let E2E_KEY=null;
+const E2E_SECRET="gravity-deckflip-2026-team-shared-e2e-v1"; // 팀 고정 키 — 전원 자동 동일(패스프레이즈 불필요)
+async function ensureKey(){ if(CONFIG.E2E && !E2E_KEY){ try{ E2E_KEY=await deriveKey(E2E_SECRET); }catch(e){} } return E2E_KEY; }
+async function deriveKey(pass){
+  const enc=new TextEncoder();
+  const base=await crypto.subtle.importKey("raw",enc.encode(pass),"PBKDF2",false,["deriveKey"]);
+  return crypto.subtle.deriveKey({name:"PBKDF2",salt:enc.encode("gravity-deckflip-salt"),iterations:120000,hash:"SHA-256"},
+    base,{name:"AES-GCM",length:256},false,["encrypt","decrypt"]);
+}
+async function encText(txt){
+  if(!CONFIG.E2E||!E2E_KEY) return txt;
+  const iv=crypto.getRandomValues(new Uint8Array(12));
+  const ct=await crypto.subtle.encrypt({name:"AES-GCM",iv},E2E_KEY,new TextEncoder().encode(txt));
+  const b=new Uint8Array(iv.length+ct.byteLength); b.set(iv); b.set(new Uint8Array(ct),iv.length);
+  return "enc:"+btoa(String.fromCharCode(...b));
+}
+async function decText(val){
+  if(typeof val!=="string"||!val.startsWith("enc:")) return val;
+  if(!E2E_KEY){ await ensureKey(); if(!E2E_KEY) return "🔒 (암호화됨)"; }
+  try{ const raw=Uint8Array.from(atob(val.slice(4)),c=>c.charCodeAt(0));
+    const iv=raw.slice(0,12), ct=raw.slice(12);
+    const pt=await crypto.subtle.decrypt({name:"AES-GCM",iv},E2E_KEY,ct);
+    return new TextDecoder().decode(pt);
+  }catch(e){ return "🔒 (복호화 실패)"; }
+}
+
+/* ---------- 데이터층 (localStorage / Supabase) ---------- */
+const USE_SB = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
+let sb=null; if(USE_SB) sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
+const LKEY="gravity_os_v1";
+const local = { tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], meta:{} };
+function loadLocal(){ try{ Object.assign(local, JSON.parse(localStorage.getItem(LKEY)||"{}")); }catch(e){}
+  ["tasks","feedback","comments","activity","profiles","messages"].forEach(k=>{ if(!Array.isArray(local[k])) local[k]=[]; }); if(!local.meta)local.meta={}; }
+function saveLocal(){ localStorage.setItem(LKEY, JSON.stringify(local)); }
+let uid=0; const nid=()=> Date.now().toString(36)+(uid++).toString(36)+Math.floor(performance.now()%1000).toString(36);
+
+const DB = {
+  async list(t){ if(USE_SB){ const {data}=await sb.from(t).select("*").order("created_at",{ascending:true}); return data||[]; } return local[t].slice(); },
+  async insert(t,row){ row.id=row.id||nid(); row.created_at=row.created_at||new Date().toISOString();
+    if(USE_SB){ const {data}=await sb.from(t).insert(row).select().single(); return data||row; }
+    local[t].push(row); saveLocal(); bcast(); return row; },
+  async update(t,id,patch){ if(USE_SB){ const {error}=await sb.from(t).update(patch).eq("id",id); return error; }
+    const r=local[t].find(x=>x.id===id); if(r)Object.assign(r,patch); saveLocal(); bcast(); return null; },
+  async remove(t,id){ if(USE_SB){ await sb.from(t).delete().eq("id",id); return; }
+    local[t]=local[t].filter(x=>x.id!==id); saveLocal(); bcast(); },
+};
+/* 로컬 크로스탭 동기화 */
+const bc = ("BroadcastChannel" in window)? new BroadcastChannel("gravity_os"):null;
+function bcast(){ if(bc) bc.postMessage("sync"); }
+if(bc) bc.onmessage=()=>{ loadLocal(); if(state.view) render(); };
+window.addEventListener("storage",e=>{ if(e.key===LKEY){ loadLocal(); render(); }});
+
+/* ---------- 상태 ---------- */
+const state = { user:null, view:"dash", tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], dmWith:null };
+
+async function refresh(){
+  state.profiles=await DB.list("profiles");
+  state.tasks=await DB.list("tasks");
+  for(const t of state.tasks){ t._content=t.content?await decText(t.content):""; }
+  state.feedback=await DB.list("feedback");
+  state.comments=await DB.list("comments");
+  state.activity=(await DB.list("activity")).slice(-120).reverse();
+  // 복호화
+  for(const f of state.feedback){ f._body=await decText(f.body); }
+  for(const c of state.comments){ c._body=await decText(c.body); }
+  state.messages=await DB.list("messages");
+  for(const x of state.messages){ x._body=await decText(x.body); }
+  state.task_comments=await DB.list("task_comments");
+  for(const c of state.task_comments){ c._body=await decText(c.body); }
+  state.task_reactions=await DB.list("task_reactions");
+  state.expenses=await DB.list("expenses");
+  for(const e of state.expenses){ e._content=e.content?await decText(e.content):""; }
+  state.appmeta=await DB.list("appmeta");
+  state.notifications=(await DB.list("notifications")).filter(n=>state.user&&n.recipient===state.user.id);
+  for(const n of state.notifications){ n._body=await decText(n.body); }
+  state.notices=await DB.list("notices");
+  for(const n of state.notices){ n._body=await decText(n.body); }
+}
+async function logAct(txt){ await DB.insert("activity",{who:state.user.id,txt,ts:Date.now()}); }
+
+/* ---------- 개인 알림 · @멘션 ---------- */
+async function notify(to,text,view){
+  if(!to||!state.user||to===state.user.id) return;
+  if(!TEAM.find(t=>t.id===to) && !(state.profiles||[]).find(p=>p.id===to)) return;
+  try{ await DB.insert("notifications",{recipient:to,actor:state.user.id,body:await encText(text),view:view||"dash",seen:false}); }catch(e){}
+}
+function parseMentions(txt){
+  const ids=new Set(); const re=/@([A-Za-z0-9_가-힣]{2,12})/g; let m;
+  while((m=re.exec(txt||""))){ const q=m[1];
+    MEMBERS().forEach(mem=>{ if(mem.name===q||mem.name.includes(q)||mem.id===q.toLowerCase()) ids.add(mem.id); }); }
+  if(state.user) ids.delete(state.user.id); return [...ids];
+}
+async function notifyMentions(txt,where,view){
+  for(const id of parseMentions(txt)){
+    await notify(id,`${state.user.name}님이 ${where}에서 나를 언급했어요 — "${(txt||"").slice(0,42)}${(txt||"").length>42?"…":""}"`,view);
+    /* 멘션은 쪽지로도 남습니다 (현우님 제안 7/8) — 알림은 흘러가도 쪽지는 기록으로 남도록 */
+    try{ await DB.insert("messages",{sender:state.user.id,recipient:id,body:await encText(`📌 ${where}에서 나를 언급했습니다
+
+"${txt}"`),seen:false}); }catch(e){}
+  }
+}
+function rich(t){
+  return esc(t==null?"":String(t)).replace(/@([A-Za-z0-9_가-힣]{2,12})/g,(mm,q)=>{
+    const mem=MEMBERS().find(x=>x.name===q||x.name.includes(q)||x.id===q.toLowerCase());
+    return mem?`<span class="mention" style="color:${mem.color}">@${q}</span>`:mm; });
+}
+function toggleNotif(){ const p=$("#ntPanel"); if(!p)return; p.classList.toggle("hidden"); if(!p.classList.contains("hidden")) renderNotif(); }
+function renderNotif(){
+  const p=$("#ntPanel"); if(!p)return;
+  const list=(state.notifications||[]).slice().reverse().slice(0,30);
+  p.innerHTML=`<div class="nthead"><b>🔔 알림</b>${list.some(n=>!n.seen)?`<button class="lnk" onclick="readAllNotif()">모두 읽음</button>`:""}</div>
+    ${list.length?list.map(n=>{const a=byId(n.actor);return `<div class="ntitem ${n.seen?"":"un"}" onclick="readNotif('${n.id}','${esc(n.view||"dash")}')">
+      <span class="pfp" style="background:${a.color}22;color:${a.color};width:26px;height:26px;font-size:13px;flex:none">${a.emoji}</span>
+      <span class="nt-t">${rich(n._body||"")}<span class="when">${n.created_at?ago(new Date(n.created_at).getTime()):""}</span></span></div>`;}).join(""):`<div class="empty" style="padding:22px;font-size:13px">알림이 없어요</div>`}`;
+}
+async function readNotif(id,view){
+  const n=(state.notifications||[]).find(x=>x.id===id);
+  if(n&&!n.seen) await DB.update("notifications",id,{seen:true});
+  const p=$("#ntPanel"); if(p)p.classList.add("hidden");
+  await go(view||"dash");
+}
+async function readAllNotif(){
+  for(const n of (state.notifications||[]).filter(x=>!x.seen)) await DB.update("notifications",n.id,{seen:true});
+  await refresh(); renderNotif(); render();
+}
+/* @멘션 자동완성 (이벤트 위임) */
+let _mdEl=null;
+function mdropHide(){ const d=$("#mdrop"); if(d)d.classList.add("hidden"); _mdEl=null; }
+function pickMention(id){
+  const el=_mdEl; if(!el)return; const mem=byId(id);
+  const pos=el.selectionStart==null?el.value.length:el.selectionStart;
+  const before=el.value.slice(0,pos).replace(/@([A-Za-z0-9_가-힣]{0,10})$/,()=>"@"+mem.name+" ");
+  el.value=before+el.value.slice(pos); el.focus();
+  try{ el.setSelectionRange(before.length,before.length); }catch(e){}
+  mdropHide();
+}
+document.addEventListener("input",e=>{
+  const el=e.target; if(!el||!el.matches||!el.matches("[data-mention]")) return;
+  const d=$("#mdrop"); if(!d) return;
+  const v=el.value.slice(0,el.selectionStart==null?el.value.length:el.selectionStart);
+  const m=v.match(/@([A-Za-z0-9_가-힣]{0,10})$/);
+  if(!m){ mdropHide(); return; }
+  const q=m[1]; const hits=MEMBERS().filter(x=>x.id!==state.user.id&&(q===""||x.name.includes(q)||x.id.startsWith(q.toLowerCase()))).slice(0,5);
+  if(!hits.length){ mdropHide(); return; }
+  _mdEl=el;
+  d.innerHTML=hits.map(h=>`<div class="mopt" onmousedown="event.preventDefault();pickMention('${h.id}')"><span class="pfp" style="background:${h.color}22;color:${h.color};width:22px;height:22px;font-size:12px">${h.emoji}</span>${esc(h.name)}</div>`).join("");
+  const r=el.getBoundingClientRect();
+  const h=hits.length*42+10;
+  d.style.left=Math.min(r.left,innerWidth-230)+"px";
+  d.style.top=(r.top-h-6>=8 ? r.top-h-6 : r.bottom+6)+"px";
+  d.classList.remove("hidden");
+});
+document.addEventListener("mousedown",e=>{
+  const d=$("#mdrop"); if(d&&!d.classList.contains("hidden")&&!d.contains(e.target)&&e.target!==_mdEl) mdropHide();
+  const p=$("#ntPanel"); if(p&&!p.classList.contains("hidden")&&!p.contains(e.target)&&!e.target.closest("#ntBtn")) p.classList.add("hidden");
+});
+
+/* ---------- 시드 (최초 1회) ---------- */
+async function seedIfEmpty(){
+  const t=await DB.list("tasks"); if(t.length) return;
+  // [who, title, pri, due, status]  — Padlet 칸반 반영
+  const seed=[
+    // 작업 계획
+    ["kangwon","줌 미팅 (7/6 22시) — 비용구조·품질 논의 [현우·재웅·강원]","m","2026-07-06","todo"],
+    ["hyunwoo","백엔드·보안 구조 스터디 → IR 원가·보안·확장성 반영","h","2026-07-12","todo"],
+    ["hyunwoo","가입 화면 데이터 처리 원칙 문구","m","2026-07-07","todo"],
+    ["jaewoong","논문 1편 → 발표자료 1개 실증","h","2026-07-07","todo"],
+    ["jaewoong","게시 소스코드 노출 버그 수정","m","2026-07-07","todo"],
+    ["jaewoong","생성 요청 큐·비동기 검토","m","2026-07-07","todo"],
+    ["jaewoong","최신 버전 커밋 → 현우 공유","l","2026-07-07","todo"],
+    ["jaewoong","최종 MVP 완성","h","","todo"],
+    ["kangwon","IR 덱 제작 총괄","h","2026-07-10","todo"],
+    ["kangwon","인터뷰 대상자 선정","m","","todo"],
+    ["yukyung","IR용 1분 영상","h","2026-07-11","todo"],
+    ["yukyung","덱플립 인스타 계정·피드 구상 (귀국 후)","l","","todo"],
+    ["yukyung","홍보 계획","m","","todo"],
+    ["suji","경쟁사 블라인드 비교 준비 (Gamma·Genspark·피규어랩스)","m","","todo"],
+    ["suji","qas 생성 테스트·불편점 취합 → 재웅 전달","m","","todo"],
+    ["suji","QAS 사이트 테스터 선정","m","","todo"],
+    // 진행중
+    ["kangwon","IR 관련 문의·내용 정리 (발표 형태·일정·인원 조율)","h","2026-07-06","doing"],
+    ["kangwon","비용 재신청 승인건 확인 → 집행 엑셀·공유","m","2026-07-06","doing"],
+    ["kangwon","IR 텍스트 초안","h","2026-07-07","doing"],
+    ["suji","로고 생성","m","","doing"],
+    ["hyunwoo","백엔드 서버 구성 검토안 (Supabase vs Supabase+AWS · 안2 추천)","m","","doing"],
+    // 완료
+    ["hyunwoo","원가 절감 검토 — 프롬프트 영어화 효과 정리","m","","done"],
+    ["hyunwoo","주소 줄임용 도메인 검색 (decks.kr·decks.run·df.is)","l","","done"],
+    ["hyunwoo","최신 버전 qas 연결 → 디자이너 테스트 가능하게","m","2026-07-07","done"],
+    ["kangwon","비용 집행 신청 방법 안내","l","","done"],
+  ];
+  for(let si=0; si<seed.length; si++){
+    const [who,title,pri,due,status]=seed[si]; const done=status==="done";
+    await DB.insert("tasks",{who,title,pri,due,done,status,done_at:done?new Date().toISOString():null,
+      subs:autoSubs(title,who).map(x=>({t:x,done})),by:"kangwon",ord:si});
+  }
+}
+
+/* ===================== 렌더 ===================== */
+const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
+const V=$("#view");
+function esc(s){ return (s==null?"":String(s)).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function fmtDate(d){ if(!d)return""; const dt=new Date(d); return (dt.getMonth()+1)+"/"+dt.getDate(); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function ago(ts){ const s=(Date.now()-ts)/1000; if(s<60)return"방금"; if(s<3600)return Math.floor(s/60)+"분 전"; if(s<86400)return Math.floor(s/3600)+"시간 전"; return Math.floor(s/86400)+"일 전"; }
+
+function stats(uidv){
+  const mine=state.tasks.filter(t=>t.who===uidv);
+  const done=mine.filter(t=>t.done);
+  const byDay={}; done.forEach(t=>{ const d=(t.done_at||"").slice(0,10); if(d)byDay[d]=(byDay[d]||0)+1; });
+  const maxDay=Math.max(0,...Object.values(byDay));
+  // streak
+  let streak=0; for(let i=0;i<30;i++){ const d=new Date(Date.now()-i*864e5).toISOString().slice(0,10); if(byDay[d])streak++; else if(i>0)break; }
+  const fb=state.feedback.filter(f=>f.who===uidv).length + state.comments.filter(c=>c.who===uidv).length;
+  const xp=done.reduce((a,t)=>a+(t.pri==="h"?20:t.pri==="m"?12:8),0);
+  const level=Math.floor(Math.sqrt(xp/16))+1; const need=(level*level)*16; const prev=((level-1)*(level-1))*16;
+  return {total:mine.length,done:done.length,pct:mine.length?Math.round(done.length/mine.length*100):0,
+    xp,level,need,prev,maxDay,streak,fb,mine,doneL:done};
+}
+
+function ringHTML(pct,label){ return `<div class="ring" style="--p:${pct}"><b>${pct}<span style="font-size:12px">%</span></b></div><div style="text-align:center;font-size:12px;color:var(--dim);margin-top:6px">${label}</div>`; }
+
+/* ---------- 대시보드 ---------- */
+function vDash(){
+  const me=state.user, s=stats(me.id);
+  const today=todayStr();
+  const todo=s.mine.filter(t=>!t.done).sort((a,b)=>(a.due||"~").localeCompare(b.due||"~")).slice(0,6);
+  const teamRows=MEMBERS().map(m=>{ const ms=stats(m.id); return {m,ms}; });
+  const earned=BADGES.filter(b=>b.chk(s));
+  const pinned=(state.notices||[]).filter(n=>n.pinned).sort((a,b)=>(b.created_at||"").localeCompare(a.created_at||""))[0];
+  const nbanner=pinned?`<div class="ntcbanner" onclick="go('notice')" title="공지사항 열기">📌 <b>${esc(pinned.title)}</b><span>공지 보기 →</span></div>`:"";
+  V.innerHTML=`${nbanner}
+    <div class="vhead"><div><h1>안녕하세요, ${esc(me.name)} 님 <span style="font-size:20px">${me.emoji}</span></h1>
+      <div class="sub">${esc(me.role)} · Lv.${s.level} · ${s.xp} XP ${s.streak>1?`· 🔥 ${s.streak}일 연속`:""}</div></div>
+      <button class="btn pri" onclick="quickAdd()">+ 할 일 추가</button></div>
+    <div class="grid g3" style="margin-bottom:16px">
+      <div class="panel" style="display:flex;gap:18px;align-items:center">
+        <div>${ringHTML(s.pct,"내 완료율")}</div>
+        <div style="flex:1"><div style="font-size:13px;color:var(--mut)">레벨 ${s.level}</div>
+          <div class="lvlbar"><span style="width:${Math.min(100,Math.round((s.xp-s.prev)/(s.need-s.prev)*100))}%"></span></div>
+          <div style="font-size:11px;color:var(--dim);margin-top:5px">다음 레벨까지 ${Math.max(0,s.need-s.xp)} XP</div>
+          <div style="margin-top:10px;font-size:13px">완료 <b>${s.done}</b> / ${s.total}</div></div>
+      </div>
+      <div class="panel"><h3>🎖️ 뱃지 <span style="color:var(--dim);font-size:12px;font-weight:400">${earned.length}/${BADGES.length}</span></h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">${BADGES.map(b=>`<div class="badge ${b.chk(s)?"":"lock"}"><div class="bi">${b.bi}</div><div class="bn">${b.bn}</div></div>`).join("")}</div></div>
+      <div class="panel"><h3>⏳ 데드라인</h3>${DEADLINES.map(dl=>{const dd=Math.ceil((new Date(dl.d)-new Date(today))/864e5);
+        return `<div style="display:flex;gap:10px;align-items:baseline;padding:5px 0;border-bottom:1px solid var(--line)"><b class="mono" style="color:${dd<=2?'var(--bad)':'var(--gold)'};min-width:44px">${dd<0?'지남':'D-'+dd}</b><span style="font-size:12.5px;color:var(--mut)">${esc(dl.t)}</span></div>`;}).join("")}</div>
+    </div>
+    <div class="grid g2">
+      <div class="panel"><h3>오늘 · 다가오는 내 할 일</h3>${todo.length?todo.map(taskHTML).join(""):`<div class="empty">할 일이 없어요. 여유롭네요 🌿</div>`}</div>
+      <div class="panel"><h3>👥 팀 진행 개요</h3>${teamRows.map(({m,ms})=>`
+        <div style="display:flex;gap:10px;align-items:center;padding:7px 0">
+          <div class="pfp" style="background:${m.color}22;color:${m.color}">${m.emoji}</div>
+          <div style="min-width:52px;font-size:13px;font-weight:600">${esc(m.name)}</div>
+          <div class="bar" style="flex:1"><span style="width:${ms.pct}%"></span></div>
+          <div class="mono" style="font-size:11.5px;color:var(--dim);min-width:60px;text-align:right">${ms.done}/${ms.total} · ${ms.pct}%</div>
+        </div>`).join("")}
+        <div style="margin-top:10px;font-size:12px;color:var(--dim)">최근 활동</div>
+        ${(state.user.id==="kangwon"?state.activity:state.activity.filter(a=>a.who===state.user.id)).slice(0,4).map(a=>`<div class="act" style="border:0;padding:5px 0"><div class="pfp" style="background:${byId(a.who).color}22;color:${byId(a.who).color};width:20px;height:20px;font-size:11px">${byId(a.who).emoji}</div><span style="font-size:12.5px">${esc(a.txt)}</span><span class="when">${ago(a.ts)}</span></div>`).join("")||'<div class="empty" style="padding:14px">아직 활동 없음</div>'}
+      </div>
+    </div>`;
+}
+
+const REACTS=["👍","🔥","🎉","👀","✅","❤️"];
+function whoChip(id){ const o=byId(id); return `<span class="wchip" title="${esc(o.role||o.name||'')}" style="border-color:${o.color}55;background:${o.color}14"><span class="we" style="background:${o.color}22;color:${o.color}">${o.emoji}</span>${esc(o.name)}</span>`; }
+function taskReacts(id){ return (state.task_reactions||[]).filter(r=>r.task===id); }
+function taskCmts(id){ return (state.task_comments||[]).filter(c=>c.task===id); }
+function taskSocial(t){ const rs=taskReacts(t.id); const by={}; rs.forEach(r=>by[r.emoji]=(by[r.emoji]||0)+1);
+  const chips=Object.entries(by).map(([e,n])=>`<span class="rchip${rs.some(r=>r.emoji===e&&r.who===state.user.id)?' me':''}" onclick="event.stopPropagation();toggleReaction('${t.id}','${e}')">${e} ${n}</span>`).join("");
+  return `<div class="social">${chips}<span class="rchip add" onclick="event.stopPropagation();openEditTask('${t.id}')" title="반응 추가">😊 반응</span></div>`; }
+function dueChip(t){ if(!t.due)return""; const dd=Math.ceil((new Date(t.due)-new Date(todayStr()))/864e5); const c=(!t.done&&dd<0)?"due-over":(!t.done&&dd<=1)?"due-soon":""; const lbl=(!t.done&&dd<0)?`지남 ${fmtDate(t.due)}`:fmtDate(t.due); return `<span class="chip ${c}">📅 ${lbl}</span>`; }
+async function toggleReaction(id,emoji){ const mine=(state.task_reactions||[]).find(r=>r.task===id&&r.who===state.user.id&&r.emoji===emoji);
+  if(mine) await DB.remove("task_reactions",mine.id);
+  else { await DB.insert("task_reactions",{task:id,who:state.user.id,emoji});
+    const _t=state.tasks.find(t=>t.id===id); if(_t&&_t.who!==state.user.id) await notify(_t.who,`${state.user.name}님이 "${_t.title}"에 ${emoji} 반응을 남겼어요`,"board"); }
+  await go(state.view); if($("#modal").classList.contains("on")) openEditTask(id); }
+async function addTaskComment(id,inp){ const txt=inp.value.trim(); if(!txt)return; const hits=detectSensitive(txt); if(hits.length&&!confirm(`⚠️ ${hits.join(", ")} 감지. 올릴까요?`))return;
+  await DB.insert("task_comments",{task:id,who:state.user.id,body:await encText(txt)});
+  const _t=state.tasks.find(t=>t.id===id)||{}; const tt=_t.title||""; await logAct(`"${tt}"에 댓글`);
+  if(_t.who) await notify(_t.who,`${state.user.name}님이 "${tt}" 태스크에 댓글 — "${txt.slice(0,36)}"`,"board");
+  await notifyMentions(txt,`"${tt}" 태스크 댓글`,"board");
+  await go(state.view); if($("#modal").classList.contains("on")) openEditTask(id); }
+async function delTaskComment(cid,tid){ const c=(state.task_comments||[]).find(x=>x.id===cid); if(!c)return; if(c.who!==state.user.id&&state.user.id!=="kangwon"){toast("본인/팀장만 삭제 가능");return;}
+  await DB.remove("task_comments",cid); await go(state.view); if($("#modal").classList.contains("on")) openEditTask(tid); }
+function taskHTML(t){
+  const owner=byId(t.who); const doneSubs=(t.subs||[]).filter(s=>s.done).length;
+  return `<div class="task ${t.done?'done':''}" data-id="${t.id}">
+    <div class="cbox" onclick="toggleTask('${t.id}')">${t.done?'✓':''}</div>
+    <div style="flex:1">
+      <div class="tt" style="cursor:pointer" onclick="openEditTask('${t.id}')" title="클릭해서 수정">${esc(t.title)}</div>
+      <div class="tmeta">
+        ${whoChip(t.who)}
+        <span class="pri ${t.pri}">${t.pri==='h'?'높음':t.pri==='m'?'보통':'낮음'}</span>
+        <select class="stsel st-${taskStatus(t)}" onclick="event.stopPropagation()" onchange="setStatus('${t.id}',this.value)" title="상태 변경">${["todo","doing","done"].map(k=>`<option value="${k}" ${taskStatus(t)===k?'selected':''}>${STLABEL[k]}</option>`).join("")}</select>
+        ${dueChip(t)}
+        ${t.subs&&t.subs.length?`<span class="chip" onclick="this.closest('.task').querySelector('.subs')?.classList.toggle('hidden')" style="cursor:pointer">☑ ${doneSubs}/${t.subs.length}</span>`:''}
+        ${t.by&&t.by!==t.who?`<span class="chip" style="color:var(--dim)">by ${esc(byId(t.by).name)}</span>`:''}
+      </div>
+      <button class="tdel" onclick="event.stopPropagation();delTask('${t.id}')" title="태스크 삭제">삭제</button>
+      ${taskSocial(t)}
+      ${(t._content||t.content)?`<button class="viewbtn" onclick="openEditTask('${t.id}')">📄 내용 보기</button>`:''}
+      ${t.subs&&t.subs.length?`<div class="subs">${t.subs.map((s,i)=>`<div class="sub ${s.done?'done':''}" onclick="toggleSub('${t.id}',${i})"><div class="sc">${s.done?'✓':''}</div><span>${esc(s.t)}</span></div>`).join("")}</div>`:''}
+    </div></div>`;
+}
+
+/* ---------- 내 할 일 ---------- */
+function vMine(){
+  const s=stats(state.user.id);
+  const doing=s.mine.filter(t=>taskStatus(t)==="doing"), todo=s.mine.filter(t=>taskStatus(t)==="todo"), done=s.mine.filter(t=>taskStatus(t)==="done");
+  const grp=(title,arr)=>arr.length?`<div class="datesep">${title} ${arr.length}</div>${arr.map(taskHTML).join("")}`:"";
+  V.innerHTML=`
+    <div class="vhead"><div><h1>내 할 일</h1><div class="sub">진행중 ${doing.length} · 계획 ${todo.length} · 완료 ${done.length} · Lv.${s.level}</div></div>
+      <button class="btn pri" onclick="quickAdd()">+ 할 일 추가</button></div>
+    <div class="panel" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px"><span>내 진행률</span><b>${s.pct}%</b></div><div class="bar"><span style="width:${s.pct}%"></span></div></div>
+    ${(doing.length+todo.length+done.length)===0?`<div class="empty">할 일이 없어요 ✨</div>`:""}
+    ${grp("⏳ 진행 중",doing)}${grp("📋 계획",todo)}${grp("✅ 완료",done)}`;
+}
+
+/* ---------- 팀 보드 ---------- */
+let boardFilter=null; // 최초 진입 시 본인 보드부터
+function setBoardFilter(id){ boardFilter=id; vBoard(); }
+function vBoard(){
+  const cols=[["todo","작업 계획","📋"],["doing","작업 진행중","⏳"],["done","작업 완료","✅"]];
+  if(boardFilter===null) boardFilter=state.user.id;
+  const mem=[...MEMBERS()].sort((a,b)=>(a.id===state.user.id?-1:0)-(b.id===state.user.id?-1:0));
+  const flt=t=>boardFilter==="all"||t.who===boardFilter;
+  const fchips=`<div class="bfilter">${mem.map(m=>{const n=state.tasks.filter(t=>t.who===m.id).length;return `<span class="fchip ${boardFilter===m.id?'on':''}" onclick="setBoardFilter('${m.id}')"><span style="color:${m.color}">${m.emoji}</span>${m.id===state.user.id?'내 보드':esc(m.name)} <span class="cnt">${n}</span></span>`;}).join("")}<span class="fchip ${boardFilter==='all'?'on':''}" onclick="setBoardFilter('all')">전체 <span class="cnt">${state.tasks.length}</span></span></div>`;
+  V.innerHTML=`<div class="vhead"><div><h1>팀 보드</h1><div class="sub">계획 · 진행중 · 완료 — 드래그 핸들로 이동/정렬 · ◀▶ · 담당자별 필터</div></div>
+    <button class="btn pri" onclick="quickAdd(true)">＋ 태스크 추가</button></div>
+    ${fchips}
+    <div class="board3">
+    ${cols.map(([st,label,ic])=>{
+      const list=state.tasks.filter(t=>taskStatus(t)===st&&flt(t)).sort((a,b)=>(ordVal(a)-ordVal(b))||(a.due||"~").localeCompare(b.due||"~"));
+      return `<div class="bcol col-${st}"><div class="bcolh st-${st}">${ic} ${label}<span class="cnt">${list.length}</span></div>
+        <div class="bcol-list" ondragover="onColDragOver(event,'${st}')" ondrop="onDrop(event,'${st}')" ondragleave="onColDragLeave(event)">${list.length?list.map(boardCard).join(""):`<div class="empty" style="padding:22px;font-size:12.5px">비어 있음 — 여기로 드래그</div>`}</div></div>`;
+    }).join("")}</div>`;
+}
+
+/* ---------- 피드백 ---------- */
+const FBCATS=["팀 구조","협업 도구","제품 방향","일정·우선순위","자유"];
+function vFeedback(){
+  const byDate={}; state.feedback.slice().reverse().forEach(f=>{ const d=(f.created_at||"").slice(0,10)||"기타"; (byDate[d]=byDate[d]||[]).push(f); });
+  V.innerHTML=`<div class="vhead"><div><h1>상호 피드백</h1><div class="sub">Padlet 대체 · 실시간 · 날짜별 · 댓글 · E2E 암호화</div></div></div>
+    <div class="panel" style="margin-bottom:18px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px" id="fbcats">${FBCATS.map((c,i)=>`<span class="chip ${i===0?'on':''}" data-c="${esc(c)}" style="cursor:pointer;${i===0?'border-color:var(--a1);color:var(--ink)':''}">${esc(c)}</span>`).join("")}</div>
+      <textarea id="fbInput" data-mention placeholder="지금 구조·협업·제품에 대해 하고 싶은 말을 남겨주세요. (민감정보 금지)"></textarea>
+      <div id="fbSens"></div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+        <span style="font-size:11.5px;color:var(--faint)" class="mono">${CONFIG.E2E&&E2E_KEY?'🔒 E2E 암호화 켜짐':'🔓 암호화 꺼짐'}</span>
+        <button class="btn pri sm" onclick="postFeedback()">피드백 남기기</button></div>
+    </div>
+    ${Object.keys(byDate).length?Object.entries(byDate).map(([d,arr])=>`
+      <div class="datesep">${d===todayStr()?'오늘':d}</div>
+      ${arr.map(fbItemHTML).join("")}`).join(""):`<div class="empty">아직 피드백이 없어요. 첫 마디를 남겨보세요 🌿</div>`}`;
+  bindSens("#fbInput","#fbSens");
+  localStorage.setItem("gv_fbseen_"+state.user.id,Date.now()); const fb=$("#fbBdg"); if(fb){fb.textContent="";fb.style.display="none";}
+  $$("#fbcats .chip").forEach(c=>c.onclick=()=>{ $$("#fbcats .chip").forEach(x=>{x.classList.remove("on");x.style.borderColor="";x.style.color="";}); c.classList.add("on");c.style.borderColor="var(--a1)";c.style.color="var(--ink)"; });
+}
+function fbItemHTML(f){
+  const u=byId(f.who); const cs=state.comments.filter(c=>c.parent===f.id);
+  return `<div class="fbitem" data-id="${f.id}">
+    <div class="fbhead"><div class="pfp" style="background:${u.color}22;color:${u.color}">${u.emoji}</div>
+      <b style="font-size:13.5px">${esc(u.name)}</b>${f.cat?`<span class="tag">${esc(f.cat)}</span>`:''}
+      <span class="when">${new Date(f.created_at).toLocaleString('ko-KR',{hour:'2-digit',minute:'2-digit'})}</span>${(f.who===state.user.id||state.user.id==="kangwon")?`<button class="fbdel" onclick="delFeedback('${f.id}')" title="삭제">🗑</button>`:''}</div>
+    <div class="fbbody">${rich(f._body||f.body)}</div>
+    <div class="cmts">
+      ${cs.map(c=>{const cu=byId(c.who); return `<div class="cmt"><div class="pfp" style="background:${cu.color}22;color:${cu.color};width:22px;height:22px;font-size:12px">${cu.emoji}</div><div class="cb" style="display:flex;align-items:center;gap:6px"><span><b style="font-size:11.5px">${esc(cu.name)}</b> ${rich(c._body||c.body)}</span>${(c.who===state.user.id||state.user.id==="kangwon")?`<button class="cdel" onclick="delComment('${c.id}')" title="삭제">✕</button>`:''}</div></div>`;}).join("")}
+      <div class="cmt"><div class="pfp" style="background:${state.user.color}22;color:${state.user.color};width:22px;height:22px;font-size:12px">${state.user.emoji}</div>
+        <input data-mention placeholder="댓글 달기… (@이름 멘션)" style="padding:7px 11px;font-size:13px" onkeydown="if(event.key==='Enter')addComment('${f.id}',this)"></div>
+    </div></div>`;
+}
+
+/* ---------- 허브 ---------- */
+function vHub(){
+  V.innerHTML=`<div class="vhead"><div><h1>허브 · 가이드</h1><div class="sub">방향 · 역할 · 일정 · 규정 · 바로가기</div></div></div>
+    <div class="panel" style="margin-bottom:16px;border-color:rgba(124,92,255,.35)">
+      <h3>🧭 우리의 방향</h3>
+      <div style="font-family:var(--fh);font-size:19px;line-height:1.4">우리는 발표자료를 <span class="grad">소프트웨어로</span> 만듭니다.<br>문서를 넣으면 발표 직전 완성도의 웹 덱이 나오는 파이프라인 — 그게 제품입니다.</div>
+    </div>
+    <div class="grid g2" style="margin-bottom:16px">
+      <div class="panel"><h3>👥 역할</h3>${TEAM.map(m=>`<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)">
+        <div class="pfp" style="background:${m.color}22;color:${m.color};width:30px;height:30px">${m.emoji}</div>
+        <div><b style="font-size:13.5px">${esc(m.name)}</b> <span style="font-size:11px;color:var(--dim)">· ${esc(m.role)}</span><div style="font-size:12.5px;color:var(--mut);margin-top:2px">${esc(m.big)}</div></div></div>`).join("")}</div>
+      <div class="panel"><h3>📅 일정</h3>${DEADLINES.map(dl=>{const dd=Math.ceil((new Date(dl.d)-new Date(todayStr()))/864e5);
+        return `<div style="display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)"><b class="mono" style="color:var(--gold);min-width:80px">${dl.d.slice(5)}</b><span style="font-size:12.5px;color:var(--mut)">${esc(dl.t)}</span><b class="mono" style="margin-left:auto;color:${dd<=2?'var(--bad)':'var(--dim)'}">${dd<0?'지남':'D-'+dd}</b></div>`;}).join("")}
+        <h3 style="margin-top:16px">📎 바로가기</h3>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <a class="btn gho sm" href="https://qas.deckflip.net" target="_blank" style="justify-content:flex-start">🔗 qas.deckflip.net (제품)</a>
+          <a class="btn gho sm" href="https://forms.gle/b5c1xMHQC2T4ASTXA" target="_blank" style="justify-content:flex-start">📋 발굴 설문</a>
+          <span class="btn gho sm" style="justify-content:flex-start;color:var(--dim);cursor:default">🔒 설문 응답 시트 — 개인정보 포함, 단톡으로만 공유</span>
+        </div></div>
+    </div>
+    <div class="panel"><h3>💸 비용·규정 요약</h3>
+      <div style="font-size:13px;color:var(--mut)">· 신규 건은 각자 신청, 결제는 팀장 · 집행 후 7일 내 redwit 증빙 · 제목 "[7월분] 서비스명(사용자)" · 캡처는 로고+금액+월분 한 화면 · <b style="color:var(--warn)">계정정보·비번은 어디에도 올리지 않기</b></div></div>`;
+}
+
+/* ---------- 활동 ---------- */
+function vActivity(){
+  const isLead=state.user.id==="kangwon";
+  const acts=isLead?state.activity:state.activity.filter(a=>a.who===state.user.id);
+  V.innerHTML=`<div class="vhead"><div><h1>활동로그</h1><div class="sub">${isLead?"팀 전체 활동 · 실시간":"내 활동만 보입니다 (전체는 팀장만) · 실시간"}</div></div></div>
+    <div class="panel">${acts.length?acts.map(a=>`<div class="act"><div class="pfp" style="background:${byId(a.who).color}22;color:${byId(a.who).color};width:24px;height:24px;font-size:12px">${byId(a.who).emoji}</div><span><b>${esc(byId(a.who).name)}</b> · ${esc(a.txt)}</span><span class="when">${ago(a.ts)}</span></div>`).join(""):`<div class="empty">활동이 쌓이면 여기에 보입니다</div>`}</div>`;
+}
+
+
+/* ---------- 헬퍼 ---------- */
+function copyText(t){ (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("복사됐어요")).catch(()=>{const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();toast("복사됐어요");}); }
+function openSite(u){ window.open(u,"_blank","noopener"); }
+
+/* ---------- 비용 신청 도우미 ---------- */
+function vExpense(){
+  const mon=new Date().getMonth()+1;
+  V.innerHTML=`<div class="vhead"><div><h1>비용 신청 도우미</h1><div class="sub">USD·환율만 넣으면 승인 사례 형식의 redwit 세부사유를 자동 생성 — 반려 없이 한 번에</div></div>
+    <button class="btn pri" onclick="openSite('https://gravity.redwit.io/')">🔗 비용 신청하러 가기</button></div>
+    <div class="panel" style="margin-bottom:16px;border-color:rgba(255,180,84,.3)">
+      <div style="display:flex;gap:9px;flex-wrap:wrap;font-size:12.5px">
+        <span class="chip">🕙 승인 월·수·금 오전 10시</span><span class="chip">📅 사용기한 ~11/15</span>
+        <span class="chip">💰 총액 1,170만 · 출장/회의 각 117만</span><span class="chip">💳 제출 통장·연결카드로만 결제</span><span class="chip" style="border-color:var(--warn);color:var(--warn)">⚠️ 50만원↑ 단톡 논의</span></div></div>
+    <div class="grid g2">
+      <div class="panel"><h3>1️⃣ 항목 입력</h3>
+        <label>분류</label><select id="exCat" onchange="exGen()">${EXP_CATS.map(c=>`<option value="${c.id}">${c.n}</option>`).join("")}</select>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>서비스/항목명</label><input id="exSvc" placeholder="예: Higgsfield AI / Claude API" oninput="exGen()"></div>
+          <div><label>플랜명 (선택)</label><input id="exPlan" placeholder="예: Ultra Plan / Pro Plan" oninput="exGen()"></div></div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>담당 팀원</label><select id="exUser" onchange="exGen()">${MEMBERS().map(m=>`<option ${m.id===state.user.id?'selected':''}>${esc(m.name)}</option>`).join("")}</select></div>
+          <div><label>월분</label><input id="exMon" type="number" value="${mon}" oninput="exGen()"></div></div>
+        <div class="grid g2" id="exUsdWrap" style="margin-top:10px">
+          <div><label>USD 공식요금 ($/월)</label><input id="exUsd" type="number" placeholder="129" oninput="exGen()"></div>
+          <div><label>적용환율 (원/$)</label><input id="exRate" type="number" value="1530" oninput="exGen()"></div></div>
+        <div class="grid g2" style="margin-top:10px">
+          <div><label>신청 금액 (원)</label><input id="exAmt" type="number" placeholder="210000" oninput="exGen()"></div>
+          <div id="exSepWrap"><label>계정 분리 대상 (선택)</label><input id="exSep" placeholder="예: 이현우" oninput="exGen()"></div></div>
+        <label style="margin-top:10px">용도·연관성 한 줄 (선택)</label><input id="exDetail" placeholder="예: 템플릿 영상 에셋 제작·품질 검수 담당" oninput="exGen()">
+        <div id="exRateHint" class="mono" style="font-size:12px;color:var(--a2);margin-top:8px"></div>
+        <div id="exWarn" style="margin-top:10px"></div></div>
+      <div class="panel"><h3>2️⃣ 자동 생성 결과<button class="btn sm" style="margin-left:auto" onclick="copyText(document.getElementById('exTitle').value+String.fromCharCode(10)+String.fromCharCode(10)+document.getElementById('exOut').value)">📋 제목+사유 복사</button></h3>
+        <label>제목</label><div style="display:flex;gap:8px"><input id="exTitle" readonly><button class="btn sm" onclick="copyText(document.getElementById('exTitle').value)">복사</button></div>
+        <label style="margin-top:10px">세부 사유 <span style="color:var(--faint)">(승인 사례 형식)</span></label><textarea id="exOut" readonly style="min-height:300px;font-size:13px"></textarea>
+        <div style="margin-top:12px;border:1px solid var(--line);border-radius:11px;padding:12px;background:var(--panel)">
+          <div style="font-size:12.5px;font-weight:700;margin-bottom:6px">📸 캡처 체크리스트</div><div id="exChk" style="font-size:12.5px;color:var(--mut)"></div></div></div></div>`;
+  exGen();
+}
+function exGen(){
+  const catId=$("#exCat").value; const c=EXP_CATS.find(x=>x.id===catId)||EXP_CATS[0];
+  const f={catId, service:$("#exSvc").value||"(서비스명)", plan:($("#exPlan")||{}).value?.trim()||"",
+    user:$("#exUser").value, usd:+($("#exUsd")||{}).value||0, rate:+($("#exRate")||{}).value||1530,
+    amount:+$("#exAmt").value||0, mon:$("#exMon").value||(new Date().getMonth()+1),
+    detail:$("#exDetail").value.trim(), sep:($("#exSep")||{}).value?.trim()||""};
+  const r=exBuild(f); $("#exTitle").value=r.title; $("#exOut").value=r.body;
+  const uw=$("#exUsdWrap"); if(uw) uw.style.display=(c.usd===false)?"none":"grid";
+  const sw=$("#exSepWrap"); if(sw) sw.style.display=(c.sep)?"":"none";
+  const hint=$("#exRateHint");
+  if(hint){ if(c.id==="sapi"&&f.usd){ const tot=Math.round(f.usd*1.1); hint.textContent=`$${f.usd} +세금10% = $${tot} × ${_kw(f.rate)}원 ≈ ${_kw(tot*f.rate)}원`; }
+    else if(c.usd!==false&&f.usd){ hint.textContent=`$${f.usd} × ${_kw(f.rate)}원 ≈ ${_kw(f.usd*f.rate)}원`; } else hint.textContent=""; }
+  let w=[];
+  if(f.amount>=500000) w.push("💬 50만원 이상 — 집행 전 단톡방 논의 필요");
+  if(c.id==="edu") w.push("🎓 AI 교육 — 교육 후 수료증 제출 필수 · 팀원만 가능");
+  if(c.id==="meet") w.push("👥 회의비 — 외부 인원 1인 이상 포함(1인 5만원까지) · 22~06시·주말 불가");
+  if(c.id==="trip") w.push("🧳 출장 — 식비 1일 2.5만·숙박 울산 8만 이내");
+  if(c.usd!==false) w.push("💱 해외결제 — 실결제액 기준 사후 정산(콘솔 결제화면 캡처 필수)");
+  $("#exWarn").innerHTML=w.length?`<div style="border:1px solid var(--warn);background:rgba(255,180,84,.1);border-radius:10px;padding:10px 12px;font-size:12.5px;color:var(--gold);display:flex;flex-direction:column;gap:4px">${w.map(x=>`<div>${x}</div>`).join("")}</div>`:"";
+  $("#exChk").innerHTML=(c.id==="meet"||c.id==="trip")?"· 영수증(외부인원/일정 확인 가능)을 한 화면에<br>· 참석자·일시·장소 기재":(c.id==="sapi"?"· 콘솔 <b>구매/충전 화면</b>(크레딧 금액 + 총 결제액)이 한 화면에<br>· 집행 후 소진내역 증빙은 추후 업로드":"· 서비스 로고 + 금액 + 결제주기(Monthly/월분)가 <b>한 화면</b>에<br>· 흐릿하지 않게 · 금액이 정확히 보이게");
+}
+
+/* ---------- 허브 v2 (공지 한눈에) ---------- */
+function vHub2(){
+  V.innerHTML=`<div class="vhead"><div><h1>허브 · 자료실</h1><div class="sub">방향·역할·일정·바로가기·규정·AI 지원 — 공지를 한눈에</div></div></div>
+  <div class="panel" style="margin-bottom:16px;border-color:rgba(124,92,255,.35)"><h3>🧭 우리의 방향</h3>
+    <div style="font-family:var(--fh);font-size:19px;line-height:1.4">우리는 발표자료를 <span class="grad">소프트웨어로</span> 만듭니다.<br>문서를 넣으면 발표 직전 완성도의 웹 덱이 나오는 파이프라인 — 그게 제품입니다.</div></div>
+  <div class="panel" style="margin-bottom:16px"><h3>🔗 바로가기 <span style="font-size:11px;color:var(--faint);font-weight:400">· 계정은 단톡 공지 참조(여기엔 없음)</span></h3>
+    ${[...new Set(SITES.map(s=>s.g))].map(g=>`<div style="font-size:11.5px;color:var(--dim);font-weight:700;margin:12px 0 8px">${g}</div>
+    <div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(185px,1fr));gap:10px">
+    ${SITES.filter(s=>s.g===g).map(x=>`<div onclick="openSite('${x.u}')" style="cursor:pointer;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:.2s" onmouseover="this.style.borderColor='var(--a1)'" onmouseout="this.style.borderColor='var(--line)'">
+      <div style="font-size:19px">${x.ic}</div><div style="font-weight:600;font-size:13px;margin-top:3px">${x.n} ↗</div><div style="font-size:11px;color:var(--dim)">${x.d}</div></div>`).join("")}</div>`).join("")}</div>
+  ${state.user.id==="kangwon"&&pendingList().length?`<div class="panel" style="margin-bottom:16px;border-color:rgba(255,180,84,.4)"><h3>🔔 가입 승인 대기 <span style="color:var(--warn);font-size:12px">${pendingList().length}건</span></h3>${pendingList().map(p=>`<div class="pendcard"><div class="pfp" style="background:${p.color}22;color:${p.color};width:30px;height:30px">${p.emoji}</div><div><b style="font-size:13.5px">${esc(p.name)}</b> <span style="font-size:11px;color:var(--dim)">· ${esc(p.role||'')} · @${esc(p.id)}</span></div><div class="act2"><button class="btn sm pri" onclick="approveMember('${p.id}')">승인</button><button class="btn sm gho" onclick="rejectMember('${p.id}')" style="color:var(--bad);border-color:rgba(255,107,129,.4)">거절</button></div></div>`).join("")}</div>`:""}
+  <div class="grid g2" style="margin-bottom:16px">
+    <div class="panel"><h3>👥 역할 ${state.user.id==="kangwon"?'<span style="font-size:11px;color:var(--dim);font-weight:400">· 팀장 편집 가능</span>':''}</h3>${MEMBERS().map(m=>`<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);align-items:flex-start"><div class="pfp" style="background:${m.color}22;color:${m.color};width:28px;height:28px">${m.emoji}</div><div style="flex:1"><b style="font-size:13px">${esc(m.name)}</b> <span style="font-size:11px;color:var(--dim)">· ${esc(m.role)}</span><div style="font-size:12px;color:var(--mut)">${esc(m.big||'')}</div></div>${state.user.id==="kangwon"?`<button class="btn gho" onclick="openEditMember('${m.id}')" style="padding:2px 9px;font-size:11px">편집</button>`:''}</div>`).join("")}</div>
+    <div class="panel"><h3>📅 일정</h3><div class="irnote">📄 IR: <b>PDF 1개 제출</b>(발표도 그 PDF로) · 링크 삽입 가능 — 단, 현장 인터넷이 안 될 수 있어 오프라인 대비 필수 · 발표자 수 제한 없음</div>${DEADLINES.map(dl=>{const dd=Math.ceil((new Date(dl.d)-new Date(todayStr()))/864e5);return `<div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--line)"><b class="mono" style="color:var(--gold);min-width:66px">${dl.d.slice(5)}</b><span style="font-size:12px;color:var(--mut);flex:1">${esc(dl.t)}</span><b class="mono" style="color:${dd<=2?'var(--bad)':'var(--dim)'}">${dd<0?'지남':'D-'+dd}</b></div>`;}).join("")}</div></div>
+  <div class="panel" style="margin-bottom:16px"><h3>💸 창업활동비 규정<button class="btn sm" style="margin-left:auto" onclick="go('expense')">신청 도우미 →</button></h3>
+    <div style="display:flex;gap:9px;flex-wrap:wrap;margin-bottom:12px">
+      <span class="chip">총액 <b style="color:var(--gold)">1,170만</b></span><span class="chip">기한 <b style="color:var(--gold)">~11/15</b></span><span class="chip">출장·회의 각 <b>117만</b></span><span class="chip">회의 1인 <b>5만</b>+외부1인</span><span class="chip">식비 <b>2.5만</b>/일</span><span class="chip">숙박 울산 <b>8만</b></span><span class="chip">증빙 <b>7일</b>내</span></div>
+    <div class="grid g2">${FUNDRULES.map(r=>`<div style="padding:7px 0;border-bottom:1px solid var(--line)"><b style="font-size:13px">${esc(r.t)}</b><div style="font-size:12px;color:var(--mut)">${esc(r.d)}</div></div>`).join("")}</div></div>
+  <div class="panel"><h3>🤖 AI 지원 솔루션 <span style="font-size:11px;color:var(--faint);font-weight:400">· 공용 계정 로그인(단톡 참조)</span></h3>
+    <div class="grid g3">${AISOL.map(a=>{const dd=Math.ceil((new Date(a.exp)-new Date(todayStr()))/864e5);return `<div style="border:1px solid var(--line);border-radius:12px;padding:14px;cursor:pointer" onclick="openSite('${a.u}')" onmouseover="this.style.borderColor='var(--a1)'" onmouseout="this.style.borderColor='var(--line)'">
+      <div style="font-weight:700;font-size:14px">${esc(a.n)} ↗</div><div style="font-size:12px;color:var(--mut);margin:4px 0;min-height:32px">${esc(a.d)}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="chip" style="color:var(--a2)">${esc(a.credit)}</span><span class="chip" style="color:${dd<=10?'var(--bad)':'var(--dim)'}">~${a.exp.slice(5)} · D-${dd}</span></div></div>`;}).join("")}</div></div>`;
+}
+
+/* ---------- 태스크 수정 ---------- */
+function openEditTask(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  const isLead=state.user.id==="kangwon"; const canEdit=(t.who===state.user.id||isLead);
+  const rs=taskReacts(id), cs=taskCmts(id); const by={}; rs.forEach(r=>by[r.emoji]=(by[r.emoji]||0)+1);
+  const head = canEdit ? `
+    <label>할 일</label><input id="etTitle" value="${esc(t.title).replace(/"/g,'&quot;')}">
+    <label style="margin-top:12px">내용</label><textarea id="etBody" placeholder="상세 설명 (선택)" style="min-height:88px">${esc(t._content||'')}</textarea>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>담당</label><select id="etWho" ${isLead?'':'disabled'}>${MEMBERS().map(m=>`<option value="${m.id}" ${m.id===t.who?'selected':''}>${esc(m.name)}</option>`).join("")}</select></div>
+      <div><label>우선순위</label><select id="etPri">${[["m","보통"],["h","높음"],["l","낮음"]].map(pp=>`<option value="${pp[0]}" ${pp[0]===t.pri?'selected':''}>${pp[1]}</option>`).join("")}</select></div></div>
+    <div style="margin-top:12px"><label>마감일</label><input type="date" id="etDue" value="${t.due||''}"></div>
+    <div style="margin-top:12px"><label>체크리스트 <span style="color:var(--faint)">(항목 추가·삭제 후 저장을 눌러야 반영돼요)</span></label>
+      <div id="etSubs">${(t.subs||[]).map(sb=>`<div class="subrow"><span class="subst${sb.done?' on':''}" title="${sb.done?'완료된 항목':'미완료 항목'}">${sb.done?'✓':''}</span><input class="subin" value="${esc(sb.t).replace(/"/g,'&quot;')}" data-done="${sb.done?1:0}"><button type="button" class="subx" onclick="this.parentElement.remove()" title="항목 삭제">✕</button></div>`).join("")}</div>
+      <button type="button" class="btn gho sm" onclick="addEtSubRow()" style="margin-top:4px">＋ 항목 추가</button></div>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">
+      <button class="btn gho" onclick="closeModal();delTask('${t.id}')" style="color:var(--bad);border-color:rgba(255,107,129,.4)">삭제</button>
+      <div style="display:flex;gap:10px"><button class="btn gho" onclick="closeModal()">닫기</button><button class="btn pri" onclick="saveEdit('${t.id}')">저장</button></div></div>`
+    : `<div style="font-size:15.5px;font-weight:700;margin-bottom:8px">${esc(t.title)}</div>
+    <div class="tmeta">${whoChip(t.who)}<span class="pri ${t.pri}">${t.pri==='h'?'높음':t.pri==='m'?'보통':'낮음'}</span><span class="chip stpill st-${taskStatus(t)}">${STLABEL[taskStatus(t)]}</span>${t.due?dueChip(t):''}</div>
+    ${t._content?`<div style="margin-top:11px;font-size:13.5px;white-space:pre-wrap;color:var(--mut);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px">${esc(t._content)}</div>`:''}`;
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:14px">태스크 상세</h3>
+    ${head}
+    <div style="border-top:1px solid var(--line);margin:16px 0 12px"></div>
+    <label style="display:block;margin-bottom:7px">반응</label>
+    <div class="social" style="margin-top:0">
+      ${Object.entries(by).map(([e,n])=>`<span class="rchip${rs.some(r=>r.emoji===e&&r.who===state.user.id)?' me':''}" onclick="toggleReaction('${id}','${e}')">${e} ${n}</span>`).join("")}
+      <span class="repick">${REACTS.map(e=>`<button onclick="toggleReaction('${id}','${e}')" title="${e}">${e}</button>`).join("")}</span></div>
+    <label style="display:block;margin:16px 0 7px">댓글 ${cs.length?`<span style="color:var(--dim)">${cs.length}</span>`:''}</label>
+    <div>${cs.map(c=>{const cu=byId(c.who);return `<div class="tcmt">${whoChip(c.who)}<div class="cb" style="display:flex;align-items:center;gap:6px"><span style="flex:1">${rich(c._body||c.body)}</span>${(c.who===state.user.id||isLead)?`<button class="cdel" onclick="delTaskComment('${c.id}','${id}')" title="삭제">✕</button>`:''}</div></div>`;}).join("")||'<div style="font-size:12.5px;color:var(--dim)">아직 댓글이 없어요</div>'}</div>
+    <div style="display:flex;gap:8px;margin-top:10px"><input id="tcInput" data-mention placeholder="댓글 달기… (@이름 멘션)" onkeydown="if(event.key==='Enter')addTaskComment('${id}',this)"><button class="btn pri sm" onclick="addTaskComment('${id}',document.getElementById('tcInput'))">등록</button></div>`;
+  openModal();
+}
+async function saveEdit(id){
+  const title=$("#etTitle").value.trim(); if(!title){toast("할 일을 입력하세요");return;}
+  const patch={title,pri:$("#etPri").value,due:$("#etDue").value};
+  if($("#etBody")){ const b=$("#etBody").value.trim(); patch.content=b?await encText(b):null; }
+  if($("#etSubs")){ patch.subs=[...document.querySelectorAll('#etSubs .subrow')].map(r=>({t:r.querySelector('.subin').value.trim(),done:r.querySelector('.subin').dataset.done==="1"})).filter(x=>x.t); }
+  if(state.user.id==="kangwon") patch.who=$("#etWho").value;
+  const _old=state.tasks.find(x=>x.id===id);
+  await DB.update("tasks",id,patch);
+  if(patch.who&&_old&&patch.who!==_old.who) await notify(patch.who,`${state.user.name}님이 "${title}" 태스크를 나에게 배정했어요`,"board");
+  await logAct(`"${title}" 수정`); closeModal(); toast("수정됐어요"); await go(state.view);
+}
+
+/* ---------- 라우터 ---------- */
+/* ---------- 비용 집행 대장 ---------- */
+const LEDGER_CATS=["일반비용","AI·SW 구독","AI 교육","회의비","출장비","기타"];
+const LEDGER_ST={pend:"심사 대기",prov:"가집행",exec:"집행완료"};
+const DEFAULT_BUDGET=11700000;
+function won(n){ try{ return (+n||0).toLocaleString('ko-KR'); }catch(e){ return String(+n||0); } }
+function budgetTotal(){ const m=(state.appmeta||[]).find(x=>x.id==="budget"); return m?(+m.v||DEFAULT_BUDGET):DEFAULT_BUDGET; }
+function exportLedgerCSV(){
+  const rows=[["제목","금액(원)","분류","담당","날짜","상태","결재완료","내용"]];
+  (state.expenses||[]).slice().sort((a,b)=>(a.date||"").localeCompare(b.date||"")).forEach(e=>rows.push([e.title||"",+e.amount||0,e.cat||"",byId(e.who).name,e.date||"",LEDGER_ST[e.status]||"",e.settled?"완료":"대기",(e._content||"").replace(/\n/g," ")]));
+  const csv="﻿"+rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"})); a.download="집행대장_"+todayStr()+".csv"; a.click(); toast("CSV를 내려받았어요");
+}
+async function seedLedgerIfEmpty(){
+  const ex=await DB.list("expenses"); if(ex.length) return;
+  const seed=[
+    ["[7월분] Claude Code Max Plan x20 (이현우)",360000,"AI·SW 구독","hyunwoo","2026-07-06","prov","Claude Code Max x20 — 인프라·백엔드 검증 및 개발용. 7/6 승인."],
+    ["[7월분] Claude Code Max Plan x20으로 업그레이드 (이강원)",300000,"AI·SW 구독","kangwon","2026-07-06","prov","기존 플랜 → Max x20 업그레이드 — IR 덱 제작·플랫폼 개발 총괄용. 7/6 승인."],
+    ["클로드 MAX 7월분 (x20 · 황재웅 기존 플랜 업그레이드)",200000,"AI·SW 구독","jaewoong","2026-07-06","prov","개발자 황재웅 계정 기존 플랜 업그레이드 — 생성 파이프라인 개발. 7/6 승인."],
+    ["Claude API 충전 $200 (이강원)",360000,"기타","kangwon","2026-07-06","prov","서비스 자체가 소비하는 API 크레딧 선불 충전. $200 + 세금 10% = $220 × 1,530원 ≈ 336,700원 → 360,000원 신청, 실결제 기준 사후 정산. $100~200 분할 충전 운영."],
+    ["Higgsfield Ultra Plan 7월분 (이수지)",210000,"AI·SW 구독","suji","2026-07-06","prov","AI 영상 생성(카메라 모션 특화) — 템플릿 영상 에셋 제작·품질 검수. 월 $129 × 1,530원 ≈ 197,400원 → 210,000원."],
+    ["힉스필드 ULTRA 7월분 (이현우)",210000,"AI·SW 구독","hyunwoo","2026-07-06","prov","AI 영상 생성 — 인프라·데모 영상 검증용(이수지 건과 계정·용도 분리). 월 $129."],
+    ["Kling Ultra Plan 7월분 (황유경)",210000,"AI·SW 구독","yukyung","2026-07-06","prov","이미지→영상 변환 — 템플릿용 영상 에셋 라이브러리 + IR 데모 영상. 월 $127.99."],
+    ["Midjourney Pro Plan 7월분 (황유경)",100000,"AI·SW 구독","yukyung","2026-07-06","prov","이미지 에셋 원천 생성 — 템플릿 프리셋·IR 자료·랜딩 비주얼. Pro(대량 생성+스텔스). 월 $60."],
+    ["Openrouter 충전 (이현우)",170000,"기타","hyunwoo","2026-07-06","pend","API 크레딧 선불 충전. $100 + 세금 = $110 × 1,530원 ≈ 168,300원. 모델별 원가 크로스체크용. 심사 대기 중(수요일 10시 검토)."],
+  ];
+  for(const [title,amount,cat,who,date,status,c] of seed){
+    await DB.insert("expenses",{title,amount,cat,who,date,status,content:await encText(c),attach:null,receipt:null,settled:false});
+  }
+}
+function ledgerStats(){ const ex=state.expenses||[];
+  const exec=ex.filter(e=>e.status==="exec").reduce((a,e)=>a+(+e.amount||0),0);
+  const prov=ex.filter(e=>e.status==="prov").reduce((a,e)=>a+(+e.amount||0),0);
+  const total=budgetTotal(); return {total,exec,prov,remain:total-exec-prov,used:exec+prov}; }
+let _ldReceipt=null;
+function ldPickReceipt(input){ const f=input.files&&input.files[0]; if(!f)return;
+  if(!/^image\//.test(f.type)){ toast("이미지 파일만 첨부돼요"); input.value=""; return; }
+  const url=URL.createObjectURL(f), img=new Image();
+  img.onload=()=>{ URL.revokeObjectURL(url); const max=1400; let w=img.width,h=img.height;
+    if(w>max||h>max){ const sc=max/Math.max(w,h); w=Math.round(w*sc); h=Math.round(h*sc); }
+    const c=document.createElement("canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(img,0,0,w,h);
+    _ldReceipt=c.toDataURL("image/jpeg",0.82); renderLdReceipt(); };
+  img.onerror=()=>{ toast("이미지를 읽지 못했어요"); }; img.src=url; }
+function renderLdReceipt(){ const el=$("#ldRcPrev"); if(!el)return;
+  el.innerHTML=(_ldReceipt&&_ldReceipt.startsWith("data:image"))
+    ?`<div class="rcprev"><img src="${_ldReceipt}" alt="영수증"><button type="button" class="btn gho sm" onclick="_ldReceipt=null;renderLdReceipt()">✕ 영수증 제거</button></div>`
+    :`<div style="font-size:12.5px;color:var(--dim)">첨부된 영수증 없음</div>`; }
+let ledgerFilter="all";
+function setLedgerFilter(f){ ledgerFilter=f; vLedger(); }
+function vLedger(){
+  const isLead=state.user.id==="kangwon"; const s=ledgerStats();
+  const items=(state.expenses||[]).slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.created_at||"").localeCompare(a.created_at||""));
+  const flt=ledgerFilter==="all"?items:(ledgerFilter==="wait"?items.filter(e=>!e.settled):items.filter(e=>e.status===ledgerFilter));
+  const wExec=s.total?Math.min(100,s.exec/s.total*100):0, wProv=s.total?Math.min(100-wExec,s.prov/s.total*100):0;
+  V.innerHTML=`<div class="vhead"><div><h1>비용 집행 대장</h1><div class="sub">승인·집행된 창업활동비를 한눈에 · 잔액 자동 차감</div></div>
+    <div style="display:flex;gap:9px;flex-wrap:wrap">${(state.expenses||[]).length?`<button class="btn gho" onclick="exportLedgerCSV()">⬇ CSV 내보내기</button>`:""}${isLead?`<button class="btn pri" onclick="openLedgerModal()">＋ 집행 건 추가</button>`:``}</div></div>
+  <div class="ledhero">
+    <div class="lbl">잔액</div><div class="big">${won(s.remain)} <span>원</span></div>
+    <div class="sub2">할당 ${won(s.total)}원 중 · <b class="hg-prov">가집행 ${won(s.prov)}원</b> · <b class="hg-exec">집행 ${won(s.exec)}원</b>${(state.expenses||[]).filter(e=>e.status==="pend").length?` · 심사 대기 ${(state.expenses||[]).filter(e=>e.status==="pend").length}건`:""}${isLead?` <button class="lnk" onclick="editBudget()">할당액 수정</button>`:''}</div>
+    <div class="ledbar"><span style="width:${wExec}%"></span><span class="prov" style="width:${wProv}%"></span></div>
+  </div>
+  <div class="grid g3" style="margin:16px 0">
+    <div class="panel ledstat"><div class="lbl">● 집행액</div><div class="num">${won(s.exec)} <span>원</span></div><div class="cap">실제 사용(집행완료 합계)</div></div>
+    <div class="panel ledstat"><div class="lbl gold">● 가집행</div><div class="num">${won(s.prov)} <span>원</span></div><div class="cap">승인 · 집행 예정</div></div>
+    <div class="panel ledstat"><div class="lbl good">● 잔액</div><div class="num">${won(s.remain)} <span>원</span></div><div class="cap">할당 − 집행 − 가집행</div></div>
+  </div>
+  <div class="bfilter"><span class="fchip ${ledgerFilter==='all'?'on':''}" onclick="setLedgerFilter('all')">전체 <span class="cnt">${items.length}</span></span>
+    <span class="fchip ${ledgerFilter==='pend'?'on':''}" onclick="setLedgerFilter('pend')">심사 대기 <span class="cnt">${items.filter(e=>e.status==='pend').length}</span></span>
+    <span class="fchip ${ledgerFilter==='prov'?'on':''}" onclick="setLedgerFilter('prov')">가집행 <span class="cnt">${items.filter(e=>e.status==='prov').length}</span></span>
+    <span class="fchip ${ledgerFilter==='exec'?'on':''}" onclick="setLedgerFilter('exec')">집행완료 <span class="cnt">${items.filter(e=>e.status==='exec').length}</span></span>
+    <span class="fchip ${ledgerFilter==='wait'?'on':''}" onclick="setLedgerFilter('wait')">⏳ 증빙대기 <span class="cnt">${items.filter(e=>!e.settled).length}</span></span></div>
+  <div class="ledlist">${flt.length?flt.map(ledCard).join(""):`<div class="empty">아직 정리된 집행 건이 없어요.${isLead?" ‘＋ 집행 건 추가’로 시작하세요.":""}</div>`}</div>`;
+}
+function ledCard(e){
+  return `<div class="ledcard" onclick="openLedger('${e.id}')">
+    <div class="lc-top"><span class="tag">${esc(e.cat||'일반비용')}</span><span class="ledst ${e.status||'prov'}">${LEDGER_ST[e.status]||'가집행'}</span></div>
+    <div class="lc-title">${esc(e.title||'(제목 없음)')}</div>
+    <div class="lc-bot">${whoChip(e.who)}<span class="lc-amt">${won(+e.amount||0)}<span>원</span></span></div>
+    <div class="lc-foot"><span class="lc-date">📅 ${esc(e.date||'-')}</span>${e.receipt?`<span class="rctag">📎 영수증</span>`:`<span class="rctag none">영수증 없음</span>`}${e.settled?`<span class="setl ok">✅ 결재완료</span>`:`<span class="setl wait">⏳ 증빙대기</span>`}</div></div>`;
+}
+function openLedger(id){
+  const e=(state.expenses||[]).find(x=>x.id===id); if(!e)return; const isLead=state.user.id==="kangwon";
+  $("#modalBox").innerHTML=`<div class="led-dhead"><span class="ledst ${e.status||'prov'}">${LEDGER_ST[e.status]||'가집행'}</span><span class="mono" style="color:var(--dim);font-size:11px">${esc(e.id)}</span></div>
+    <h3 style="font-family:var(--fh);font-size:20px;margin:10px 0 3px">${esc(e.title||'')}</h3>
+    <div style="color:var(--dim);font-size:12.5px;margin-bottom:14px">${esc(e.cat||'')} · ${esc(byId(e.who).name)} · ${esc(e.date||'')}</div>
+    <div class="led-amt"><div class="lbl">금액</div><div class="v">${won(+e.amount||0)} <span>원</span></div></div>
+    <div style="margin-top:14px"><div class="lbl" style="font-size:11.5px;color:var(--mut);font-weight:700;margin-bottom:5px">내용</div><div class="led-content">${e._content?esc(e._content):'<span style="color:var(--dim)">내용 없음</span>'}</div></div>
+    ${e.attach?`<div style="margin-top:12px"><div class="lbl-s">메모</div><div class="led-attach">${esc(e.attach)}</div></div>`:''}
+    <div style="margin-top:14px"><div class="lbl-s">결재 · 증빙</div>
+      <div class="led-settle ${e.settled?'ok':'wait'}">${e.settled?'✅ 결재 완료 — 영수증 확인·집행이 종결된 건입니다.':'⏳ 증빙 대기 — 영수증 확인/집행 종결 전입니다.'}</div>
+      ${(e.receipt&&e.receipt.startsWith('data:image'))?`<img class="rcimg" src="${e.receipt}" alt="영수증" title="클릭하면 원본 크기로 열려요" onclick="window.open(this.src,'_blank')">`:`<div style="font-size:12.5px;color:var(--dim);margin-top:6px">첨부된 영수증이 없습니다.</div>`}</div>
+    <div style="display:flex;justify-content:${isLead?'space-between':'flex-end'};margin-top:18px">
+      ${isLead?`<button class="btn gho" onclick="delLedger('${e.id}')" style="color:var(--bad);border-color:rgba(255,107,129,.4)">삭제</button>`:''}
+      <div style="display:flex;gap:10px">${isLead?`<button class="btn pri" onclick="openLedgerModal('${e.id}')">수정</button>`:''}<button class="btn gho" onclick="closeModal()">닫기</button></div></div>`;
+  openModal();
+}
+function openLedgerModal(id){
+  if(state.user.id!=="kangwon"){ toast("집행 대장은 팀장이 정리해요"); return; }
+  const e=id?(state.expenses||[]).find(x=>x.id===id):null; _ldReceipt=e?(e.receipt||null):null;
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:14px">${e?'집행 건 수정':'집행 건 추가'}</h3>
+    <label>제목</label><input id="ldTitle" value="${e?esc(e.title).replace(/"/g,'&quot;'):''}" placeholder="예: Claude API 충전 $200 (이강원)">
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>금액(원)</label><input id="ldAmt" type="number" value="${e?(+e.amount||''):''}" placeholder="360000"></div>
+      <div><label>상태</label><select id="ldStatus">${Object.entries(LEDGER_ST).map(([k,v])=>`<option value="${k}" ${e&&e.status===k?'selected':''}>${v}</option>`).join("")}</select></div></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>분류</label><select id="ldCat">${LEDGER_CATS.map(c=>`<option ${e&&e.cat===c?'selected':''}>${c}</option>`).join("")}</select></div>
+      <div><label>신청자</label><select id="ldWho">${MEMBERS().map(m=>`<option value="${m.id}" ${(e?e.who===m.id:m.id===state.user.id)?'selected':''}>${esc(m.name)}</option>`).join("")}</select></div></div>
+    <div style="margin-top:12px"><label>날짜</label><input type="date" id="ldDate" value="${e?(e.date||''):todayStr()}"></div>
+    <label style="margin-top:12px">내용 <span style="color:var(--faint)">(사유 · 창업활동 연관성 · 금액 산출근거)</span></label>
+    <textarea id="ldContent" style="min-height:110px" placeholder="집행 사유, 창업활동 연관성, 금액 산출 근거 등을 정리해 두세요.">${e?esc(e._content||''):''}</textarea>
+    <div id="ldSens"></div>
+    <label style="margin-top:12px">영수증 첨부 <span style="color:var(--faint)">(이미지 · 자동 축소 저장)</span></label>
+    <input type="file" id="ldReceipt" accept="image/*" onchange="ldPickReceipt(this)" style="padding:9px 12px;cursor:pointer">
+    <div id="ldRcPrev" style="margin-top:8px"></div>
+    <label style="margin-top:12px;display:flex;gap:8px;align-items:center;cursor:pointer;font-size:14px"><input type="checkbox" id="ldSettled" ${e&&e.settled?'checked':''} style="width:auto"> ✅ 결재 완료 (영수증 확인·집행 종결)</label>
+    <label style="margin-top:12px">메모 <span style="color:var(--faint)">(영수증 위치/비고, 선택)</span></label>
+    <input id="ldAttach" value="${e?esc(e.attach||'').replace(/"/g,'&quot;'):''}" placeholder="예: 원본 영수증 드라이브 링크 / 특이사항">
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn gho" onclick="${id?`openLedger('${id}')`:'closeModal()'}">취소</button><button class="btn pri" onclick="saveLedger(${id?`'${id}'`:'null'})">저장</button></div>`;
+  openModal(); bindSens("#ldContent","#ldSens"); renderLdReceipt();
+}
+async function saveLedger(id){
+  const title=$("#ldTitle").value.trim(); if(!title){ toast("제목을 입력하세요"); return; }
+  const amount=+$("#ldAmt").value||0, cat=$("#ldCat").value, who=$("#ldWho").value, date=$("#ldDate").value, status=$("#ldStatus").value;
+  const contentRaw=$("#ldContent").value.trim(), attach=$("#ldAttach").value.trim();
+  const hits=detectSensitive(contentRaw+" "+attach); if(hits.length && !confirm(`⚠️ ${hits.join(", ")} 감지. 저장할까요?`)) return;
+  const patch={title,amount,cat,who,date,status,content:contentRaw?await encText(contentRaw):null,attach:attach||null,receipt:_ldReceipt||null,settled:$("#ldSettled")?$("#ldSettled").checked:false};
+  if(id) await DB.update("expenses",id,patch); else await DB.insert("expenses",patch);
+  await logAct(id?`집행 건 "${title}" 수정`:`집행 건 "${title}" 정리`);
+  closeModal(); toast("저장됐어요"); await go("ledger");
+}
+async function delLedger(id){
+  if(state.user.id!=="kangwon"){ toast("팀장만 삭제 가능"); return; }
+  const e=(state.expenses||[]).find(x=>x.id===id); if(!e)return;
+  if(!confirm("이 집행 건을 삭제할까요?"))return;
+  await DB.remove("expenses",id); await logAct(`집행 건 "${e.title}" 삭제`); closeModal(); toast("삭제됨"); await go("ledger");
+}
+function editBudget(){
+  if(state.user.id!=="kangwon"){ toast("팀장만 수정 가능"); return; }
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:12px">할당액(총 배정) 수정</h3>
+    <label>총 할당액(원)</label><input id="bgTot" type="number" value="${budgetTotal()}">
+    <div style="font-size:12px;color:var(--dim);margin-top:8px">창업활동비 세후 배정액(기본 11,700,000원).</div>
+    <div style="display:flex;gap:10px;margin-top:16px;justify-content:flex-end"><button class="btn gho" onclick="go('ledger')">취소</button><button class="btn pri" onclick="saveBudget()">저장</button></div>`;
+  openModal();
+}
+async function saveBudget(){
+  const v=String(+$("#bgTot").value||DEFAULT_BUDGET);
+  const ex=(state.appmeta||[]).find(x=>x.id==="budget");
+  if(ex) await DB.update("appmeta","budget",{v}); else await DB.insert("appmeta",{id:"budget",v});
+  closeModal(); toast("할당액 저장됨"); await go("ledger");
+}
+/* ---------- 📢 공지사항 ---------- */
+function vNotice(){
+  const isLead=state.user.id==="kangwon";
+  const list=(state.notices||[]).slice().sort((a,b)=>((b.pinned?1:0)-(a.pinned?1:0))||((b.created_at||"").localeCompare(a.created_at||"")));
+  V.innerHTML=`<div class="vhead"><div><h1>공지사항</h1><div class="sub">중요한 건 전부 여기에 — 추가할 내용은 댓글이나 단톡으로 알려주세요</div></div>
+    ${isLead?`<button class="btn pri" onclick="openNoticeModal()">＋ 공지 작성</button>`:""}</div>
+  ${list.length?list.map(n=>{
+    const cs=(state.comments||[]).filter(c=>c.parent===n.id);
+    return `<div class="ntc ${n.pinned?'pin':''}">
+      <div class="ntchead">
+        ${n.pinned?`<span class="ntcpin">📌 고정</span>`:""}
+        <b>${esc(n.title)}</b>
+        <span class="when">${n.created_at?new Date(n.created_at).toLocaleDateString('ko-KR',{month:'numeric',day:'numeric'}):''} · ${esc(byId(n.by||"kangwon").name)}</span>
+        ${isLead?`<span class="ntcops"><button class="lnk2" onclick="togglePinNotice('${n.id}')">${n.pinned?'고정 해제':'고정'}</button><button class="lnk2" onclick="openNoticeModal('${n.id}')">수정</button><button class="lnk2 bad" onclick="delNotice('${n.id}')">삭제</button></span>`:""}
+      </div>
+      <div class="ntcbody">${rich(n._body||n.body||"")}</div>
+      <div class="cmts">
+        ${cs.map(c=>{const cu=byId(c.who);return `<div class="cmt"><div class="pfp" style="background:${cu.color}22;color:${cu.color};width:22px;height:22px;font-size:12px">${cu.emoji}</div><div class="cb" style="display:flex;align-items:center;gap:6px"><span style="flex:1"><b style="font-size:11.5px">${esc(cu.name)}</b> ${rich(c._body||c.body)}</span>${(c.who===state.user.id||isLead)?`<button class="cdel" onclick="delComment('${c.id}');go('notice')" title="삭제">✕</button>`:''}</div></div>`;}).join("")}
+        <div class="cmt"><div class="pfp" style="background:${state.user.color}22;color:${state.user.color};width:22px;height:22px;font-size:12px">${state.user.emoji}</div>
+          <input data-mention placeholder="공지에 대한 의견·추가 요청… (@이름 멘션)" style="padding:7px 11px;font-size:13px" onkeydown="if(event.key==='Enter')addNoticeComment('${n.id}',this)"></div>
+      </div>
+    </div>`;}).join(""):`<div class="empty">아직 공지가 없어요.</div>`}`;
+  localStorage.setItem("gv_ntcseen_"+state.user.id,Date.now());
+  const cb=$("#ntcBdg"); if(cb){cb.textContent="";cb.style.display="none";}
+}
+async function addNoticeComment(nid,inp){
+  const txt=inp.value.trim(); if(!txt)return;
+  const hits=detectSensitive(txt); if(hits.length&&!confirm(`⚠️ ${hits.join(", ")} 감지. 올릴까요?`))return;
+  await DB.insert("comments",{parent:nid,who:state.user.id,body:await encText(txt)});
+  const n=(state.notices||[]).find(x=>x.id===nid);
+  if(n&&n.by&&n.by!==state.user.id) await notify(n.by,`${state.user.name}님이 공지 "${(n.title||"").slice(0,20)}"에 댓글 — "${txt.slice(0,32)}"`,"notice");
+  await notifyMentions(txt,"공지 댓글","notice");
+  await logAct("공지에 댓글을 남겼습니다"); await go("notice");
+}
+function openNoticeModal(id){
+  if(state.user.id!=="kangwon"){ toast("공지는 팀장이 관리해요"); return; }
+  const n=id?(state.notices||[]).find(x=>x.id===id):null;
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:14px">${n?'공지 수정':'공지 작성'}</h3>
+    <label>제목</label><input id="ncTitle" value="${n?esc(n.title).replace(/"/g,'&quot;'):''}" placeholder="예: 창업활동비 신청 규칙 변경">
+    <label style="margin-top:12px">내용</label><textarea id="ncBody" style="min-height:220px" placeholder="팀원 모두가 봐야 할 내용을 적어주세요. 계정·카드 정보는 금지!">${n?esc(n._body||''):''}</textarea>
+    <div id="ncSens"></div>
+    <label style="margin-top:12px;display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="ncPin" ${n&&n.pinned?'checked':''} style="width:auto"> 📌 상단 고정 (대시보드에도 표시)</label>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn gho" onclick="closeModal()">취소</button><button class="btn pri" onclick="saveNotice(${id?`'${id}'`:'null'})">저장</button></div>`;
+  openModal(); bindSens("#ncBody","#ncSens");
+}
+async function saveNotice(id){
+  const title=$("#ncTitle").value.trim(), body=$("#ncBody").value.trim();
+  if(!title||!body){ toast("제목과 내용을 입력하세요"); return; }
+  const hits=detectSensitive(title+" "+body);
+  if(hits.length && !confirm(`⚠️ ${hits.join(", ")}처럼 보이는 내용이 있어요. 공지는 전원이 봅니다 — 정말 올릴까요?`)) return;
+  const patch={title,body:await encText(body),pinned:$("#ncPin").checked};
+  if(id){ await DB.update("notices",id,patch); await logAct(`공지 "${title}" 수정`); }
+  else{
+    await DB.insert("notices",{...patch,by:state.user.id});
+    for(const m of MEMBERS()) if(m.id!==state.user.id) await notify(m.id,`📢 새 공지가 올라왔어요 — "${title}"`,"notice");
+    await logAct(`공지 "${title}" 등록`);
+  }
+  closeModal(); toast("저장됐어요"); await go("notice");
+}
+async function delNotice(id){
+  if(state.user.id!=="kangwon")return;
+  const n=(state.notices||[]).find(x=>x.id===id); if(!n)return;
+  if(!confirm(`공지 "${n.title}"를 삭제할까요?`))return;
+  for(const c of (state.comments||[]).filter(c=>c.parent===id)) await DB.remove("comments",c.id);
+  await DB.remove("notices",id); toast("삭제됨"); await go("notice");
+}
+async function togglePinNotice(id){
+  if(state.user.id!=="kangwon")return;
+  const n=(state.notices||[]).find(x=>x.id===id); if(!n)return;
+  await DB.update("notices",id,{pinned:!n.pinned}); await go("notice");
+}
+async function seedNoticesIfEmpty(){
+  const ex=await DB.list("notices"); if(ex.length) return;
+  const N=[
+    ["우리 협업, 이제 여기서 합니다",`안녕하세요, 강원입니다. 흩어져 있던 할 일·자료·비용 신청을 이 플랫폼 하나로 모았습니다. 앞으로 협업은 여기가 기본이고, 패들릿은 보관용으로만 남겨둡니다.
+
+• 작업 — 팀 보드에서 내 작업 상태(계획 → 진행중 → 완료)를 직접 옮겨주세요. 카드를 누르면 내용·체크리스트·댓글을 쓸 수 있고, 댓글에 @이름을 쓰면 그 사람한테 알림이 갑니다.
+• 비용 — '비용 신청' 탭에서 항목만 넣으면 실제 승인된 사례와 같은 형식으로 세부사유가 자동으로 만들어집니다. 복사해서 그래비티 집행사이트에 붙여넣기만 하면 돼요.
+• 불편한 점, 있었으면 하는 기능은 피드백 탭에 남겨주세요. 웬만한 건 당일 반영합니다. (실제로 어제 올라온 체크리스트 버그도 고쳤어요)
+
+⚠️ 계정 비밀번호·카드번호 같은 민감정보는 여기 올리지 마세요. 그런 건 단톡방에서만 공유합니다.
+공지에 추가할 내용이 있으면 이 글에 댓글로 달아주시거나 단톡·개인톡으로 알려주세요. 확인하는 대로 반영하겠습니다.`,true],
+    ["창업활동비, 이렇게 쓰면 됩니다 (7/7 기준)",`카드 받아서 결제 되는 것까지 확인했습니다. 이 순서대로만 하면 반려 없이 한 번에 됩니다.
+
+[순서: 신청 → 승인 → 결제 → 증빙]
+1. 필요한 건 각자 그래비티 집행사이트에서 사전 신청해주세요. 승인은 월·수·금 오전 10시에 납니다.
+2. 승인된 건만, 반드시 제 통장에 연결된 카드로 결제합니다(카드 정보는 단톡방 참조). 결제하면 제 카카오뱅크 앱으로 알림이 와서, 원화 실결제 증빙은 제가 첨부합니다.
+3. 전자영수증이나 실물영수증은 각자 집행사이트에 추가로 첨부해주세요. 영수증에 로고·회사명·상세 결제금액이 꼭 보여야 합니다. 미첨부 시 환수 위험이 있어요.
+
+[AI 구독은 특히 이것만]
+• 월 단위 결제만 가능합니다(연 단위 불가). 신청서에 몇 월분인지 + 제품명 보이는 결제화면 캡처 + 창업아이템 연관성이 없으면 반려됩니다.
+• 자동갱신 방지를 위해 결제 직후 바로 구독 취소를 권장합니다. 다음 달에 다시 신청하면 됩니다.
+• 프로모션 할인이 보이면 최대한 받아주세요 — 실제 결제한 금액 기준으로 환급됩니다.
+• 교육 결제는 수료 후 수료증 제출이 필수입니다.
+
+[한도·기타]
+• 총액 1,170만원 · 사용 기한 11/15 (증빙 업로드는 11/22까지)
+• 출장비·회의비는 각각 117만원 한도. 회의비는 외부 인원 1명 이상 + 인당 5만원(VAT 포함). 주말 사용은 사유서를 미리 첨부해야 하고, 출장 중에 회의비를 쓰면 한 끼당 8,340원이 출장비에서 빠집니다.
+• 50만원 넘는 건은 신청 전에 단톡에서 한 번 얘기해주세요.
+• 개인 카드 포인트는 나중에 반납하라고 할 수 있다니 참고만 해주세요.
+• 반려되면 이제 삭제하고 수정해서 다시 올릴 수 있게 바뀌었습니다.`,true],
+    ["IR 본선 안내 — 7/15(수) 오후 5시",`확정된 내용만 정리합니다.
+
+• 발표: 7/15(수) 오후 5시, UNIST 마켓홀(251동). 최소 15분 전 도착 권장이고, 주차권은 팀당 1장입니다.
+• 제출: 7/13(월)까지 발표자료 PDF 파일 1개만 제출합니다. 발표도 제출한 그 PDF로만 진행돼요(운영진이 순서대로 띄워줍니다). 발표 순서는 이미 공지됐고 변경 불가입니다.
+• PDF 안에 링크를 넣는 건 가능하지만, 현장 인터넷이 안 될 수 있다는 답변을 받았습니다. 라이브 시연에 기대지 않는 구성으로 갑니다.
+• 발표 시간은 7분, 발표자 수는 제한 없습니다. 7/15 참석 가능하신 분은 단톡에 알려주세요 — 타지역에서 오시는 경우 교통비는 출장비로 신청하면 승인해준다고 합니다.`,false],
+  ];
+  for(const [title,body,pinned] of N){
+    await DB.insert("notices",{title,body:await encText(body),pinned,by:"kangwon"});
+  }
+}
+
+/* ---------- 🗓 팀 타임라인 — 누가 언제까지 뭘 하는지 한 줄로 ---------- */
+function tlDays(){
+  const today=new Date(todayStr());
+  const ts=[today.getTime()-864e5, today.getTime()+2*864e5];
+  state.tasks.forEach(t=>{ if(t.due) ts.push(new Date(t.due).getTime()); });
+  DEADLINES.forEach(d=>ts.push(new Date(d.d).getTime()));
+  let min=Math.max(Math.min(...ts), today.getTime()-7*864e5);
+  let max=Math.min(Math.max(...ts), today.getTime()+14*864e5);
+  const days=[]; for(let d=min; d<=max; d+=864e5) days.push(new Date(d).toISOString().slice(0,10));
+  return days;
+}
+function tlNode(t){
+  const st=taskStatus(t);
+  const dd=t.due?Math.ceil((new Date(t.due)-new Date(todayStr()))/864e5):null;
+  const urgent=(!t.done&&dd!=null&&dd<=0);
+  return `<span class="tlnode ${st}${urgent?' urgent':''}" onclick="openEditTask('${t.id}')" title="${esc(t.title)} · ${STLABEL[st]}${t.due?` · ~${fmtDate(t.due)}`:""}"><i></i><em>${esc(t.title)}</em></span>`;
+}
+function vTimeline(){
+  const days=tlDays(); const today=todayStr(); const W=days.length;
+  const mem=[...MEMBERS()].sort((a,b)=>(a.id===state.user.id?-1:0)-(b.id===state.user.id?-1:0));
+  const dlMap={}; DEADLINES.forEach(d=>dlMap[d.d]=d.t);
+  const cols=`grid-template-columns:repeat(${W},minmax(80px,1fr))`;
+  const head=`<div class="tlhead"><div class="tllabel h">팀원</div><div class="tlcells" style="${cols}">${days.map(d=>{
+    const dt=new Date(d), wd="일월화수목금토"[dt.getDay()];
+    return `<div class="tlday ${d===today?'today':''} ${dt.getDay()===0||dt.getDay()===6?'wknd':''}" title="${esc(dlMap[d]||'')}"><b>${dt.getMonth()+1}/${dt.getDate()}</b><span>${wd}${d===today?' · 오늘':''}</span>${dlMap[d]?`<i class="tlflag">${d==="2026-07-15"?"🚩":d==="2026-07-13"?"📄":"★"}</i>`:''}</div>`;}).join("")}</div><div class="tlno h">마감 미정</div></div>`;
+  const lanes=mem.map(m=>{
+    const mine=state.tasks.filter(t=>t.who===m.id);
+    const doing=mine.filter(t=>taskStatus(t)==="doing").length, done=mine.filter(t=>taskStatus(t)==="done").length;
+    const byDay={}, nodate=[];
+    mine.forEach(t=>{
+      const st=taskStatus(t);
+      let d = st==="done" ? (((t.done_at||"").slice(0,10))||t.due) : t.due;
+      if(!d){ nodate.push(t); return; }
+      if(d<days[0]) d=days[0]; else if(d>days[W-1]) d=days[W-1];
+      (byDay[d]=byDay[d]||[]).push(t);
+    });
+    const cells=days.map(d=>{
+      const dt=new Date(d);
+      const arr=(byDay[d]||[]).sort((a,b)=>("hml".indexOf(a.pri||"m"))-("hml".indexOf(b.pri||"m")));
+      return `<div class="tlcell ${d===today?'today':''} ${dt.getDay()===0||dt.getDay()===6?'wknd':''}">${arr.map(tlNode).join("")}</div>`;
+    }).join("");
+    return `<div class="tlrow">
+      <div class="tllabel" style="--acc:${m.color}" onclick="setBoardFilter('${m.id}');go('board')" title="클릭하면 ${esc(m.name)}님의 보드로 갑니다">
+        <span class="pfp" style="background:${m.color}22;color:${m.color}">${m.emoji}</span>
+        <div><b>${esc(m.name)}${m.id===state.user.id?' (나)':''}</b><span>⏳${doing} · ✅${done}/${mine.length}</span></div></div>
+      <div class="tlcells" style="${cols}">${cells}</div>
+      <div class="tlno">${nodate.length?`<span class="tlnochip" onclick="setBoardFilter('${m.id}');go('board')" title="마감일이 없는 작업 ${nodate.length}개 — 클릭하면 보드에서 확인">${nodate.length}개</span>`:`<span class="tlnozero">—</span>`}</div>
+    </div>`;
+  }).join("");
+  V.innerHTML=`<div class="vhead"><div><h1>팀 타임라인</h1><div class="sub">가로가 날짜예요. <b style="color:var(--ink)">칩을 누르면 그 작업 상세</b>, <b style="color:var(--ink)">왼쪽 이름을 누르면 그 사람 보드</b>가 열려요. 📄 제출 · 🚩 발표</div></div>
+    <div class="olegend"><span class="oleg"><i style="background:#8A93B7"></i>계획</span><span class="oleg"><i style="background:#2AD1FF"></i>진행중</span><span class="oleg"><i style="background:#3DDC97"></i>완료</span><span class="oleg"><i style="background:#FF6B81"></i>마감 지남</span></div></div>
+  <div class="tlwrap">${head}${lanes}</div>
+  <div class="tlhint">💡 마감일이 있어야 타임라인에 나타나요 — 칩을 눌러 상세에서 마감일을 넣어주세요. 완료된 작업은 완료한 날짜에 표시됩니다.</div>`;
+}
+
+/* ---------- 라우터 ---------- */
+const VIEWS={dash:vDash,notice:vNotice,mine:vMine,board:vBoard,timeline:vTimeline,expense:vExpense,ledger:vLedger,feedback:vFeedback,dm:vDM,hub:vHub2,activity:vActivity};
+function render(){
+  if(!state.user)return;
+  (VIEWS[state.view]||vDash)();
+  $$(".navi").forEach(n=>n.classList.toggle("on",n.dataset.v===state.view));
+  const mineOpen=state.tasks.filter(t=>t.who===state.user.id&&!t.done).length;
+  $("#mineBdg").textContent=mineOpen||""; $("#mineBdg").style.display=mineOpen?"":"none";
+  const seen=+(localStorage.getItem("gv_fbseen_"+state.user.id)||0);
+  const unread=state.feedback.filter(f=>f.who!==state.user.id && new Date(f.created_at).getTime()>seen).length;
+  $("#fbBdg").textContent=unread||""; $("#fbBdg").style.display=unread?"":"none";
+  const dmUn=state.messages.filter(x=>x.recipient===state.user.id&&!x.seen).length;
+  $("#dmBdg").textContent=dmUn||""; $("#dmBdg").style.display=dmUn?"":"none";
+  const ntUn=(state.notifications||[]).filter(n=>!n.seen).length;
+  const nb=$("#ntBdg"); if(nb){ nb.textContent=ntUn>9?"9+":(ntUn||""); nb.classList.toggle("hidden",!ntUn); }
+  const ntcSeen=+(localStorage.getItem("gv_ntcseen_"+state.user.id)||0);
+  const ntcUn=(state.notices||[]).filter(n=>new Date(n.created_at).getTime()>ntcSeen).length;
+  const cb=$("#ntcBdg"); if(cb){ cb.textContent=ntcUn||""; cb.style.display=ntcUn?"":"none"; }
+}
+async function go(v){ state.view=v; await refresh(); render(); }
+
+/* ---------- 액션 ---------- */
+async function toggleTask(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  if(t.who!==state.user.id && state.user.id!=="kangwon"){ toast("본인 태스크만 체크할 수 있어요"); return; }
+  const done=!t.done;
+  await DB.update("tasks",id,{done,status:done?"done":"todo",done_at:done?new Date().toISOString():null});
+  if(done){ celebrate(); await logAct(`"${t.title}" 완료 ✅`); }
+  await go(state.view);
+}
+async function toggleSub(id,i){
+  const t=state.tasks.find(x=>x.id===id); if(!t||!t.subs)return;
+  t.subs[i].done=!t.subs[i].done;
+  await DB.update("tasks",id,{subs:t.subs}); await go(state.view);
+}
+async function delTask(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  if(t.who!==state.user.id && state.user.id!=="kangwon"){ toast("삭제 권한이 없어요"); return; }
+  if(!confirm("이 태스크를 삭제할까요?"))return;
+  await DB.remove("tasks",id); await go(state.view);
+}
+function quickAdd(assign){ openTaskModal(assign); }
+async function postFeedback(){
+  const el=$("#fbInput"); const txt=el.value.trim(); if(!txt){ toast("내용을 입력하세요"); return; }
+  const hits=detectSensitive(txt);
+  if(hits.length && !confirm(`⚠️ ${hits.join(", ")}처럼 보이는 내용이 있어요. 정말 올릴까요?\n(민감정보는 올리지 않는 것을 권장합니다)`)) return;
+  const cat=$("#fbcats .chip.on")?.dataset.c||"자유";
+  await DB.insert("feedback",{who:state.user.id,cat,body:await encText(txt)});
+  await logAct(`[${cat}] 피드백을 남겼습니다`);
+  await notifyMentions(txt,"피드백","feedback");
+  toast("피드백이 등록됐어요"); await go("feedback");
+}
+async function addComment(fid,inp){
+  const txt=inp.value.trim(); if(!txt)return;
+  const hits=detectSensitive(txt); if(hits.length&&!confirm(`⚠️ ${hits.join(", ")} 감지. 올릴까요?`))return;
+  await DB.insert("comments",{parent:fid,who:state.user.id,body:await encText(txt)});
+  const _f=state.feedback.find(f=>f.id===fid);
+  if(_f&&_f.who!==state.user.id) await notify(_f.who,`${state.user.name}님이 내 피드백에 댓글 — "${txt.slice(0,36)}"`,"feedback");
+  await notifyMentions(txt,"피드백 댓글","feedback");
+  await logAct("피드백에 댓글을 달았습니다"); await go("feedback");
+}
+
+/* ---------- 태스크 추가 모달 (자동 템플릿) ---------- */
+function openTaskModal(assign){
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:14px">${assign?'태스크 배정':'할 일 추가'}</h3>
+    <label>할 일</label><input id="tTitle" placeholder="예: IR 초안 쓰기, 데모 영상 편집…" autocomplete="off">
+    <label style="margin-top:12px">내용 <span style="color:var(--faint)">(선택 · 상세 설명)</span></label>
+    <textarea id="tBody" placeholder="이 작업의 배경·해야 할 일·참고사항을 자유롭게 적어주세요. (민감정보 금지)" style="min-height:82px"></textarea>
+    <div id="tBodySens"></div>
+    <div class="grid g2" style="margin-top:12px">
+      <div><label>담당 <span style="color:var(--faint)">(누구에게나 배정 가능)</span></label><select id="tWho">${MEMBERS().map(m=>`<option value="${m.id}" ${m.id===state.user.id?'selected':''}>${esc(m.name)} · ${esc(m.role)}</option>`).join("")}</select></div>
+      <div><label>우선순위</label><select id="tPri"><option value="m">보통</option><option value="h">높음</option><option value="l">낮음</option></select></div>
+    </div>
+    <div style="margin-top:12px"><label>마감일 (선택)</label><input type="date" id="tDue"></div>
+    <label style="margin-top:14px;display:flex;gap:8px;align-items:center;cursor:pointer"><input type="checkbox" id="tAuto" style="width:auto"> 체크리스트 추가 <span style="color:var(--faint);font-weight:400">(직접 항목 입력)</span></label>
+    <div id="tSubsWrap" class="hidden" style="margin-top:10px"><div id="tSubs"></div>
+      <button type="button" class="btn gho sm" onclick="addSubRow()" style="margin-top:2px">＋ 항목 추가</button></div>
+    <div style="display:flex;gap:10px;margin-top:18px;justify-content:flex-end">
+      <button class="btn gho" onclick="closeModal()">취소</button><button class="btn pri" onclick="saveTask(true)">추가</button></div>`;
+  openModal();
+  bindSens("#tBody","#tBodySens");
+  $("#tAuto").onchange=e=>{ const w=$("#tSubsWrap"); w.classList.toggle("hidden",!e.target.checked); if(e.target.checked && !$("#tSubs").children.length) addSubRow(); };
+  setTimeout(()=>$("#tTitle").focus(),50);
+}
+function addSubRow(v){
+  const wrap=$("#tSubs"); const row=document.createElement("div"); row.className="subrow";
+  row.innerHTML=`<input class="subin" placeholder="체크리스트 항목" value="${(v||'').replace(/"/g,'&quot;')}"><button type="button" class="subx" onclick="this.parentElement.remove()" title="삭제">✕</button>`;
+  wrap.appendChild(row); const inp=row.querySelector('.subin'); inp.focus();
+  inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); addSubRow(); } };
+}
+function addEtSubRow(){
+  const wrap=$("#etSubs"); if(!wrap)return; const row=document.createElement("div"); row.className="subrow";
+  row.innerHTML=`<span class="subst" title="미완료 항목"></span><input class="subin" placeholder="체크리스트 항목" data-done="0"><button type="button" class="subx" onclick="this.parentElement.remove()" title="항목 삭제">✕</button>`;
+  wrap.appendChild(row); const inp=row.querySelector('.subin'); inp.focus();
+  inp.onkeydown=e=>{ if(e.key==='Enter'){ e.preventDefault(); addEtSubRow(); } };
+}
+async function saveTask(canAssign){
+  const title=$("#tTitle").value.trim(); if(!title){ toast("할 일을 입력하세요"); return; }
+  const who=canAssign?$("#tWho").value:state.user.id;
+  const pri=$("#tPri").value, due=$("#tDue").value;
+  const body=$("#tBody")?$("#tBody").value.trim():"";
+  const subs=($("#tAuto")&&$("#tAuto").checked)?[...document.querySelectorAll('#tSubs .subin')].map(i=>i.value.trim()).filter(Boolean).map(t=>({t,done:false})):[];
+  const _ords=state.tasks.filter(t=>taskStatus(t)==="todo").map(ordVal).filter(n=>n<9999);
+  const ord=(_ords.length?Math.max(..._ords):-1)+1;
+  await DB.insert("tasks",{who,title,pri,due,done:false,status:"todo",subs,by:state.user.id,content:body?await encText(body):null,ord});
+  await logAct(who===state.user.id?`"${title}" 추가`:`${byId(who).name}에게 "${title}" 배정`);
+  if(who!==state.user.id) await notify(who,`${state.user.name}님이 "${title}" 태스크를 나에게 배정했어요`,"board");
+  await notifyMentions(body,`"${title}" 태스크 내용`,"board");
+  closeModal(); toast("추가됐어요"); await go(state.view);
+}
+
+/* ---------- 민감정보 실시간 바인딩 ---------- */
+function bindSens(inSel,outSel){
+  const el=$(inSel), out=$(outSel); if(!el)return;
+  el.oninput=()=>{ const hits=detectSensitive(el.value);
+    if(hits.length){ el.classList.add("sensitive"); out.innerHTML=`<div class="sensmsg">⚠️ ${hits.join(", ")}처럼 보여요 — 민감정보는 올리지 마세요</div>`; }
+    else{ el.classList.remove("sensitive"); out.innerHTML=""; } };
+}
+
+/* ---------- 토스트 · 모달 · 컨페티 ---------- */
+let tT; function toast(m){ const t=$("#toast"); t.textContent=m; t.classList.add("on"); clearTimeout(tT); tT=setTimeout(()=>t.classList.remove("on"),2200); }
+function openModal(){ $("#modal").classList.add("on"); } function closeModal(){ $("#modal").classList.remove("on"); }
+$("#modal").onclick=e=>{ if(e.target.id==="modal")closeModal(); };
+
+/* ===== 상태(계획/진행중/완료) ===== */
+const STLABEL={todo:"계획",doing:"진행중",done:"완료"};
+function taskStatus(t){ return t.status || (t.done?"done":"todo"); }
+async function setStatus(id,st){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  if(t.who!==state.user.id && state.user.id!=="kangwon"){ toast("본인/팀장만 이동 가능"); return; }
+  const err=await DB.update("tasks",id,{status:st,done:st==="done",done_at:st==="done"?new Date().toISOString():null});
+  if(err){ toast("이동 실패 — DB 표 구조(status 열)를 확인하세요"); return; }
+  if(st==="done"){ celebrate(); await logAct(`"${t.title}" 완료 ✅`); if(t.by&&t.by!==state.user.id) await notify(t.by,`"${t.title}" 태스크가 완료됐어요 ✅ (${state.user.name})`,"board"); } else { await logAct(`"${t.title}" → ${STLABEL[st]}`); }
+  await go(state.view);
+}
+async function cycleStatus(id){
+  const t=state.tasks.find(x=>x.id===id); if(!t)return;
+  const o=["todo","doing","done"]; await setStatus(id,o[(o.indexOf(taskStatus(t))+1)%3]);
+}
+/* ===== 드래그 앤 드롭 ===== */
+function ordVal(t){ return (typeof t.ord==='number')?t.ord:9999; }
+let dragId=null;
+function onDragStart(e,id){ dragId=id; try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',id);}catch(_){}
+  e.currentTarget.classList.add('dragging'); }
+function onDragEnd(e){ e.currentTarget.classList.remove('dragging'); e.currentTarget.draggable=false; clearDropMarks(); dragId=null; }
+function clearDropMarks(){ $$('.bcard.dropbefore,.bcard.dropafter').forEach(c=>c.classList.remove('dropbefore','dropafter')); $$('.bcol-list.dropend').forEach(c=>c.classList.remove('dropend')); }
+function onCardDragOver(e,id){ if(!dragId||id===dragId)return; e.preventDefault(); try{e.dataTransfer.dropEffect='move';}catch(_){}
+  clearDropMarks(); const card=e.currentTarget; const r=card.getBoundingClientRect(); card.classList.add((e.clientY<r.top+r.height/2)?'dropbefore':'dropafter'); }
+function onColDragOver(e,st){ if(!dragId)return; e.preventDefault(); try{e.dataTransfer.dropEffect='move';}catch(_){}
+  if(e.target.classList&&e.target.classList.contains('bcol-list')){ clearDropMarks(); e.currentTarget.classList.add('dropend'); } }
+function onColDragLeave(e){ if(e.target===e.currentTarget) e.currentTarget.classList.remove('dropend'); }
+async function onDrop(e,st){ e.preventDefault(); const id=dragId; const bC=$('.bcard.dropbefore'), aC=$('.bcard.dropafter');
+  let targetId=null, before=false; if(bC){targetId=bC.dataset.id;before=true;} else if(aC){targetId=aC.dataset.id;before=false;}
+  clearDropMarks(); if(id) await moveTaskTo(id,st,targetId,before); dragId=null; }
+async function moveTaskTo(dragId,st,targetId,before){
+  const drag=state.tasks.find(t=>t.id===dragId); if(!drag)return;
+  if(drag.who!==state.user.id && state.user.id!=="kangwon"){ toast("본인/팀장만 이동 가능"); return; }
+  let colIds=state.tasks.filter(t=>taskStatus(t)===st && t.id!==dragId).sort((a,b)=>(ordVal(a)-ordVal(b))||(a.due||"~").localeCompare(b.due||"~")).map(t=>t.id);
+  let idx=colIds.length; if(targetId){ const p=colIds.indexOf(targetId); if(p>=0) idx=before?p:p+1; }
+  colIds.splice(idx,0,dragId);
+  if(taskStatus(drag)!==st){ const err=await DB.update("tasks",dragId,{status:st,done:st==="done",done_at:st==="done"?new Date().toISOString():null}); if(err){ toast("이동 실패 — DB 표 구조 확인"); return; } if(st==="done"){ celebrate(); if(drag.by&&drag.by!==state.user.id) await notify(drag.by,`"${drag.title}" 태스크가 완료됐어요 ✅ (${state.user.name})`,"board"); } }
+  for(let k=0;k<colIds.length;k++){ const tk=state.tasks.find(x=>x.id===colIds[k]); if(tk && ordVal(tk)!==k) await DB.update("tasks",colIds[k],{ord:k}); }
+  await logAct(`"${drag.title}" ${STLABEL[st]}(으)로 이동`);
+  await go("board");
+}
+/* ===== 보드 카드 ===== */
+function boardCard(t){
+  const o=byId(t.who), ord=["todo","doing","done"], i=ord.indexOf(taskStatus(t)), st=taskStatus(t);
+  const can=(t.who===state.user.id||state.user.id==="kangwon");
+  const cs=taskCmts(t.id), rs=taskReacts(t.id);
+  const by={}; rs.forEach(r=>by[r.emoji]=(by[r.emoji]||0)+1);
+  const rchips=Object.entries(by).map(([e,n])=>`<span class="rchip${rs.some(r=>r.emoji===e&&r.who===state.user.id)?' me':''}" onclick="event.stopPropagation();toggleReaction('${t.id}','${e}')">${e} ${n}</span>`).join("");
+  const info=[];
+  if(t._content||t.content) info.push(`<span class="minfo" onclick="event.stopPropagation();openEditTask('${t.id}')">📄 내용</span>`);
+  if(cs.length) info.push(`<span class="minfo" onclick="event.stopPropagation();openEditTask('${t.id}')">💬 ${cs.length}</span>`);
+  const social=(rchips||info.length)?`<div class="bsocial">${rchips}${info.join("")}</div>`:"";
+  const cmtHTML=cs.length?`<div class="cardcmts">${cs.slice(-2).map(c=>{const cu=byId(c.who);return `<div class="ccmt"><span class="cca" style="background:${cu.color}22;color:${cu.color}">${cu.emoji}</span><span class="cct"><b>${esc(cu.name)}</b> ${rich(c._body||c.body)}</span></div>`;}).join("")}${cs.length>2?`<div class="cmore" onclick="event.stopPropagation();openEditTask('${t.id}')">댓글 ${cs.length}개 모두 보기 →</div>`:""}</div>`:"";
+  const dsub=(t.subs||[]).filter(x=>x.done).length, tsub=(t.subs||[]).length;
+  return `<div class="bcard st-${st}" data-id="${t.id}" style="--acc:${o.color}" draggable="false" onclick="openEditTask('${t.id}')" ondragstart="onDragStart(event,'${t.id}')" ondragend="onDragEnd(event)" ondragover="onCardDragOver(event,'${t.id}')">
+    <div class="tt">${esc(t.title)}</div>
+    <div class="tmeta">
+      ${whoChip(t.who)}
+      <span class="pri ${t.pri}">${t.pri==="h"?"높음":t.pri==="m"?"보통":"낮음"}</span>
+      ${dueChip(t)}
+      ${tsub?`<span class="chip ck${dsub===tsub?' done':''}">☑ ${dsub}/${tsub}</span>`:""}</div>
+    ${social}
+    ${cmtHTML}
+    <div class="bhover" onclick="event.stopPropagation()">
+      <div class="cardcmt-add"><input data-mention placeholder="댓글 추가… (@이름 멘션)" onkeydown="if(event.key==='Enter')addTaskComment('${t.id}',this)"><button class="btn sm" onclick="addTaskComment('${t.id}',this.previousElementSibling)">등록</button></div>
+      <div class="bfoot">
+        <span class="rq"><button class="qreact" onclick="toggleReaction('${t.id}','👍')" title="좋아요">👍</button><button class="qreact" onclick="openEditTask('${t.id}')" title="반응·상세 열기">😊</button></span>
+        ${can?`<span class="rq"><select class="stsel st-${st}" onclick="event.stopPropagation()" onchange="setStatus('${t.id}',this.value)" title="작업 상태 바로 변경">${["todo","doing","done"].map(k=>`<option value="${k}" ${st===k?'selected':''}>${STLABEL[k]}</option>`).join("")}</select><button class="draghandle" onmousedown="this.closest('.bcard').draggable=true" onmouseup="this.closest('.bcard').draggable=false" title="누른 채로 끌면 순서·칸 이동">⠿ 끌어서 이동</button></span>`:"<span></span>"}
+      </div>
+    </div>
+  </div>`;
+}
+/* ===== 피드백 삭제 · 댓글 삭제 ===== */
+async function delFeedback(id){
+  const f=state.feedback.find(x=>x.id===id); if(!f)return;
+  if(f.who!==state.user.id && state.user.id!=="kangwon"){ toast("본인/팀장만 삭제 가능"); return; }
+  if(!confirm("이 피드백을 삭제할까요?"))return;
+  for(const c of state.comments.filter(c=>c.parent===id)) await DB.remove("comments",c.id);
+  await DB.remove("feedback",id); await logAct("피드백을 삭제했습니다"); await go("feedback");
+}
+async function delComment(id){
+  const c=state.comments.find(x=>x.id===id); if(!c)return;
+  if(c.who!==state.user.id && state.user.id!=="kangwon"){ toast("본인/팀장만 삭제 가능"); return; }
+  await DB.remove("comments",id); await go("feedback");
+}
+/* ===== 팀장: 멤버 역할 편집 ===== */
+function openEditMember(id){
+  if(state.user.id!=="kangwon"){ toast("팀장만 편집 가능"); return; }
+  const m=byId(id);
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:18px;margin-bottom:14px">역할 편집 · ${esc(m.name)}</h3>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div><label>이름</label><input id="emName" value="${esc(m.name).replace(/"/g,'&quot;')}"></div>
+      <div><label>이모지</label><input id="emEmoji" value="${esc(m.emoji)}" maxlength="4"></div></div>
+    <div style="margin-top:10px"><label>역할</label><input id="emRole" value="${esc(m.role||'').replace(/"/g,'&quot;')}"></div>
+    <div style="margin-top:10px"><label>한 줄 소개(큰 그림)</label><textarea id="emBig" style="min-height:70px">${esc(m.big||'')}</textarea></div>
+    <div style="margin-top:10px"><label>색상</label><input id="emColor" type="color" value="${m.color||'#7C5CFF'}" style="height:40px;padding:4px"></div>
+    <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:18px"><button class="btn gho" onclick="closeModal()">취소</button><button class="btn pri" onclick="saveMember('${id}')">저장</button></div>`;
+  openModal();
+}
+async function saveMember(id){
+  const patch={name:$("#emName").value.trim(),role:$("#emRole").value.trim(),big:$("#emBig").value.trim(),emoji:$("#emEmoji").value.trim()||"🙂",color:$("#emColor").value,approved:true};
+  const exists=(state.profiles||[]).find(p=>p.id===id);
+  if(exists) await DB.update("profiles",id,patch); else await DB.insert("profiles",{id,...patch});
+  await logAct(`${patch.name}의 역할을 수정했습니다`); closeModal(); toast("저장됐어요"); await go(state.view);
+}
+/* ===== 도움말 ===== */
+function openHelp(){
+  $("#modalBox").innerHTML=`<h3 style="font-family:var(--fh);font-size:19px;margin-bottom:6px">❓ 사용 도움말</h3>
+    <p style="color:var(--dim);font-size:12.5px;margin-bottom:14px">헷갈리기 쉬운 것들만 모았어요</p>
+    ${[
+      ["🔑 비밀번호 변경·백업·로그아웃","우측 상단 <b>내 이름/아이콘 클릭</b>"],
+      ["⌘ 빠른 명령·검색","<b>Ctrl(⌘) + K</b> — 어디서든 할 일 추가·이동"],
+      ["✏️ 할 일 수정·담당 변경·삭제","할 일 <b>제목 클릭</b>"],
+      ["🔀 상태 이동(계획→진행중→완료)","팀 보드에서 카드의 <b>◀ ▶</b>, 또는 목록의 상태 칩 클릭"],
+      ["➕ 태스크 만들기·배정","<b>누구나</b> + 버튼으로 본인/팀원에게 배정 가능"],
+      ["📢 공지사항","중요 규칙·일정은 전부 여기 — 새 공지가 오면 왼쪽 메뉴에 숫자가 떠요"],
+      ["🔔 알림","배정·댓글·완료·@멘션이 오면 우측 상단 <b>종(🔔)</b>에 표시"],
+      ["@ 멘션","댓글·피드백·쪽지에서 <b>@이름</b> 입력 — 자동완성 + 상대에게 알림"],
+      ["🗓 팀 타임라인","가로가 날짜 — <b>칩 클릭=작업 상세</b> · <b>이름 클릭=그 사람 보드</b> · 마감 없는 건 오른쪽 '미정'"],
+      ["💸 비용 신청","<b>비용 신청</b> 탭 — redwit 세부사유 자동 생성 + 캡처 안내"],
+      ["📒 집행 대장","승인·집행 완료된 비용을 정리 · 잔액 자동 차감(가집행/집행). 팀장이 관리"],
+      ["💬 피드백","남기고 · 댓글 · 본인 글 삭제 가능. 확인하면 알림 숫자 사라짐"],
+      ["🔒 활동로그","각자 <b>본인 활동만</b> 보여요 (전체는 팀장만 확인)"],
+      ["💬 태스크 협업","카드를 열면 <b>이모지 반응·댓글</b>을 남길 수 있어요 (전원 가능)"],
+      ["🔎 담당자별 보기","팀 보드 상단 <b>담당자 필터</b>로 한 사람 작업만 모아보기"],
+      ["✦ 허브","역할·일정·규정·바로가기. <b>팀장은 역할 편집</b> 가능"],
+      ["👤 회원가입","로그인 화면 회원가입 탭 — 5명 외 개인도 참여"],
+      ["🪟 이 창 닫기","<b>✕ 버튼</b> · Esc · 바깥 클릭"],
+    ].map(([t,d])=>`<div style="padding:9px 0;border-bottom:1px solid var(--line)"><b style="font-size:13.5px">${t}</b><div style="font-size:12.5px;color:var(--mut)">${d}</div></div>`).join("")}
+    <button class="btn pri" style="width:100%;margin-top:16px;justify-content:center" onclick="closeModal()">알겠어요</button>`;
+  openModal();
+}
+
+/* ===== 가입 승인 ===== */
+function isApproved(id){ if(TEAM.find(t=>t.id===id)) return true; const p=(state.profiles||[]).find(x=>x.id===id); return !!(p&&p.approved); }
+function pendingList(){ return (state.profiles||[]).filter(p=>!p.approved && !TEAM.find(t=>t.id===p.id)); }
+function showPending(msg){ ["#landing","#loginv","#app"].forEach(x=>$(x).classList.add("hidden")); if(msg)$("#pendMsg").innerHTML=msg; $("#pending").classList.remove("hidden"); }
+async function approveMember(id){ await DB.update("profiles",id,{approved:true}); await notify(id,"가입이 승인됐어요 — 환영합니다! 🎉","dash"); await logAct(`${byId(id).name} 가입을 승인했습니다`); toast("승인됐어요"); await go(state.view); }
+async function rejectMember(id){ if(!confirm("이 가입 요청을 거절(삭제)할까요?"))return; await DB.remove("profiles",id); toast("거절했어요"); await go(state.view); }
+
+/* ===== 쪽지(DM) ===== */
+function openDM(id){ state.dmWith=id; go("dm"); }
+async function sendDM(to){
+  const el=$("#dmText"); const txt=(el?el.value:"").trim(); if(!txt||!to)return;
+  const hits=detectSensitive(txt); if(hits.length&&!confirm(`⚠️ ${hits.join(", ")} 감지. 보낼까요?`))return;
+  await DB.insert("messages",{sender:state.user.id,recipient:to,body:await encText(txt),seen:false});
+  state.dmWith=to; await logAct(`${byId(to).name}에게 쪽지를 보냈습니다`); await go("dm");
+}
+async function markDMSeen(withId){
+  const uns=state.messages.filter(x=>x.sender===withId&&x.recipient===state.user.id&&!x.seen);
+  if(!uns.length)return; for(const x of uns){ x.seen=true; await DB.update("messages",x.id,{seen:true}); }
+  await go("dm");
+}
+function vDM(){
+  const others=MEMBERS().filter(m=>m.id!==state.user.id);
+  const withId=state.dmWith||(others[0]&&others[0].id);
+  const conv=state.messages.filter(x=>(x.sender===state.user.id&&x.recipient===withId)||(x.sender===withId&&x.recipient===state.user.id)).sort((a,b)=>(a.created_at||"").localeCompare(b.created_at||""));
+  V.innerHTML=`<div class="vhead"><div><h1>쪽지</h1><div class="sub">팀원과 1:1 · E2E 암호화</div></div></div>
+  <div class="dmwrap">
+    <div class="dmlist">${others.map(m=>{const un=state.messages.filter(x=>x.sender===m.id&&x.recipient===state.user.id&&!x.seen).length;
+      return `<div class="dmp ${m.id===withId?'on':''}" onclick="openDM('${m.id}')"><div class="pfp" style="background:${m.color}22;color:${m.color};width:34px;height:34px">${m.emoji}</div><div style="flex:1"><b style="font-size:13px">${esc(m.name)}</b><div style="font-size:11px;color:var(--dim)">${esc(m.role||'')}</div></div>${un?`<span class="bdg">${un}</span>`:''}</div>`;}).join("")||'<div class="empty" style="padding:16px;font-size:12.5px">팀원이 없어요</div>'}</div>
+    <div class="dmthread">
+      <div class="dmmsgs" id="dmmsgs">${conv.length?conv.map(x=>`<div class="dmmsg ${x.sender===state.user.id?'me':''}">${rich(x._body||x.body)}<span class="t">${x.created_at?new Date(x.created_at).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):''}</span></div>`).join(""):`<div class="empty">${withId?byId(withId).name+'님에게 첫 쪽지를 보내보세요':'대화 상대를 선택하세요'}</div>`}</div>
+      <div class="dminput"><input id="dmText" data-mention placeholder="메시지… (민감정보 금지)" onkeydown="if(event.key==='Enter')sendDM('${withId}')"><button class="btn pri sm" onclick="sendDM('${withId}')">보내기</button></div>
+    </div></div>`;
+  const el=$("#dmmsgs"); if(el)el.scrollTop=el.scrollHeight;
+  if(withId) markDMSeen(withId);
+}
+function celebrate(){ const cs=["#7C5CFF","#2AD1FF","#FFC24B","#3DDC97","#FF6B9D"];
+  for(let i=0;i<26;i++){ const c=document.createElement("div"); c.className="confetti";
+    c.style.background=cs[i%cs.length]; c.style.left=(45+Math.random()*10)+"%"; c.style.top="42%";
+    document.body.appendChild(c); const ang=Math.random()*Math.PI*2, v=4+Math.random()*7;
+    let x=0,y=0,vy=-v*Math.sin(ang)-4,vx=v*Math.cos(ang),op=1;
+    const iv=setInterval(()=>{ vy+=0.5; x+=vx; y+=vy; op-=0.02; c.style.transform=`translate(${x*6}px,${y*6}px) rotate(${x*20}deg)`; c.style.opacity=op;
+      if(op<=0){ clearInterval(iv); c.remove(); } },16); } }
+
+/* ---------- 커맨드 팔레트 ---------- */
+const PAL=[
+  {t:"할 일 추가",h:"add",run:()=>quickAdd()},
+  {t:"대시보드",h:"go",run:()=>go("dash")},{t:"내 할 일",h:"go",run:()=>go("mine")},
+  {t:"팀 보드",h:"go",run:()=>go("board")},{t:"피드백 남기기",h:"go",run:()=>go("feedback")},
+  {t:"허브·가이드",h:"go",run:()=>go("hub")},{t:"활동로그",h:"go",run:()=>go("activity")},
+  {t:"로그아웃",h:"auth",run:()=>logout()},
+];
+function openPal(){ $("#palette").classList.add("on"); $("#palInput").value=""; renderPal(""); setTimeout(()=>$("#palInput").focus(),40); }
+function closePal(){ $("#palette").classList.remove("on"); }
+let palSel=0;
+function renderPal(q){
+  const items=PAL.filter(p=>p.t.toLowerCase().includes(q.toLowerCase()));
+  const tasks=state.tasks.filter(t=>t.title.toLowerCase().includes(q.toLowerCase())&&q).slice(0,4)
+    .map(t=>({t:"→ "+t.title,h:"task",run:()=>{go(t.who===state.user.id?"mine":"board");}}));
+  const all=[...items,...tasks]; palSel=0;
+  $("#palResult").innerHTML=all.map((p,i)=>`<div class="pr ${i===0?'on':''}" data-i="${i}"><span>${esc(p.t)}</span><span class="ph">${p.h}</span></div>`).join("")||'<div class="empty" style="padding:16px">결과 없음</div>';
+  $("#palResult")._items=all;
+  $$("#palResult .pr").forEach(el=>el.onclick=()=>{ all[+el.dataset.i].run(); closePal(); });
+}
+
+/* ---------- 로그인/세션 ---------- */
+let picked=null;
+function initLogin(){
+  $("#accGrid").innerHTML=TEAM.map(m=>`<div class="accpick" data-id="${m.id}"><div class="av" style="background:${m.color}22;color:${m.color}">${m.emoji}</div><div class="nm">${m.name}</div><div class="ro">${m.role.split(" · ")[0]}</div></div>`).join("");
+  $("#modeNote").textContent = USE_SB ? "팀원과 실시간으로 함께 관리합니다" : "이 브라우저에 저장됩니다";
+  $$(".accpick").forEach(el=>el.onclick=()=>{ $$(".accpick").forEach(x=>x.classList.remove("on")); el.classList.add("on");
+    picked=el.dataset.id; $("#pickedName").textContent=byId(picked).name+" 님으로 로그인"; $("#pwWrap").classList.remove("hidden"); $("#pwInput").focus(); });
+  $("#loginBtn").onclick=()=>doLogin(picked,$("#pwInput").value,null,"#loginErr");
+  $("#pwInput").onkeydown=e=>{ if(e.key==="Enter")$("#loginBtn").click(); };
+  $("#idLoginBtn").onclick=()=>doLogin($("#idInput").value.trim().toLowerCase(),$("#idPw").value,null,"#idErr");
+  $("#idPw").onkeydown=e=>{ if(e.key==="Enter")$("#idLoginBtn").click(); };
+  $("#signupBtn").onclick=doSignup;
+  $("#tabLogin").onclick=()=>toggleAuth(true); $("#tabSignup").onclick=()=>toggleAuth(false);
+}
+function toggleAuth(login){ $("#tabLogin").classList.toggle("on",login); $("#tabSignup").classList.toggle("on",!login);
+  $("#paneLogin").classList.toggle("hidden",!login); $("#paneSignup").classList.toggle("hidden",login); }
+async function doLogin(id,pw,pass,errSel){
+  const err=$(errSel); err.textContent="";
+  if(!id){ err.textContent="계정을 선택하거나 아이디를 입력하세요"; return; }
+  if(CONFIG.E2E) await ensureKey();
+  let member;
+  if(USE_SB){
+    const {error}=await sb.auth.signInWithPassword({email:id+"@"+CONFIG.EMAIL_DOMAIN,password:pw});
+    if(error){ err.textContent="아이디 또는 비밀번호가 올바르지 않습니다"; return; }
+    await loadProfiles(); member=byId(id); if(!member||member.emoji==="·") member={id,name:id,role:"멤버",color:"#8891B4",emoji:"🙂"};
+  } else {
+    const t=TEAM.find(x=>x.id===id); const prof=(await DB.list("profiles")).find(p=>p.id===id);
+    if(!t&&!prof){ err.textContent="없는 아이디입니다"; return; }
+    const expected=localStorage.getItem("gv_pw_"+id)||(t?t.pw:null);
+    if(pw!==expected){ err.textContent="아이디 또는 비밀번호가 올바르지 않습니다"; return; }
+    member=t||prof;
+  }
+  await loadProfiles();
+  if(!isApproved(id)){ state.user=member; showPending("아직 <b style=\'color:var(--ink)\'>팀장 승인 대기</b> 중이에요. 승인되면 이용할 수 있습니다."); return; }
+  state.user=member; sessionStorage.setItem("gv_user",member.id);
+  await enterApp();
+}
+async function doSignup(){
+  const err=$("#suErr"); err.textContent="";
+  const id=$("#suId").value.trim().toLowerCase().replace(/[^a-z0-9_]/g,"");
+  const name=$("#suName").value.trim(), role=$("#suRole").value, pw=$("#suPw").value, pw2=$("#suPw2").value;
+  if(!id||!name){ err.textContent="아이디와 이름을 입력하세요"; return; }
+  if(TEAM.find(t=>t.id===id)){ err.textContent="이미 사용 중인 팀 아이디입니다"; return; }
+  if(pw.length<6){ err.textContent="비밀번호는 6자 이상"; return; }
+  if(pw!==pw2){ err.textContent="비밀번호가 서로 다릅니다"; return; }
+  const cols=["#8B5CF6","#06B6D4","#10B981","#F59E0B","#EC4899","#38BDF8","#A3E635"], ems=["🙂","🦊","🐿️","🦉","🐢","🐝","🐧"];
+  const prof={id,name,role,color:cols[id.length%cols.length],emoji:ems[name.length%ems.length],approved:false};
+  if(CONFIG.E2E) await ensureKey();
+  if(USE_SB){
+    const {error}=await sb.auth.signUp({email:id+"@"+CONFIG.EMAIL_DOMAIN,password:pw});
+    if(error){ err.textContent="가입 실패: "+error.message; return; }
+    const {data:se}=await sb.auth.getSession();
+    if(!se.session){ const r=await sb.auth.signInWithPassword({email:id+"@"+CONFIG.EMAIL_DOMAIN,password:pw}); if(r.error){ err.textContent="가입됨 · 관리자에게 이메일 확인 해제를 요청하세요"; return; } }
+    try{ await DB.insert("profiles",prof); }catch(e){}
+  } else {
+    if((await DB.list("profiles")).find(p=>p.id===id)){ err.textContent="이미 있는 아이디입니다"; return; }
+    localStorage.setItem("gv_pw_"+id,pw); await DB.insert("profiles",prof);
+  }
+  state.user=prof; state.profiles=[...(state.profiles||[]),prof];
+  try{ await notify("kangwon",`${name}님이 가입을 요청했어요 — 허브에서 승인해 주세요`,"hub"); }catch(e){}
+  showPending("가입 요청이 접수됐어요. <b style=\'color:var(--ink)\'>팀장 승인</b> 후 이용할 수 있습니다.");
+}
+function logout(){ sessionStorage.removeItem("gv_user"); sessionStorage.removeItem("gv_pass"); if(USE_SB)sb.auth.signOut(); location.reload(); }
+
+/* ---------- 계정(비밀번호 변경·백업·로그아웃) ---------- */
+function openAccount(){
+  const m=state.user;
+  $("#modalBox").innerHTML=`<div style="display:flex;gap:12px;align-items:center;margin-bottom:16px">
+    <div class="pfp" style="background:${m.color}22;color:${m.color};width:44px;height:44px;font-size:22px">${m.emoji}</div>
+    <div><b style="font-family:var(--fh);font-size:18px">${esc(m.name)}</b><div style="font-size:12px;color:var(--dim)">${esc(m.role||'')} · @${m.id}</div></div></div>
+  <div style="border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:14px">
+    <div style="font-weight:700;font-size:14px;margin-bottom:10px">🔑 내 비밀번호 변경</div>
+    <label>새 비밀번호 <span style="color:var(--faint)">(6자 이상)</span></label><input type="password" id="npw" placeholder="6자 이상" autocomplete="new-password">
+    <label style="margin-top:10px">새 비밀번호 확인</label><input type="password" id="npw2" placeholder="한 번 더" autocomplete="new-password">
+    <div id="pwmsg" style="font-size:12.5px;margin-top:8px"></div>
+    <button class="btn pri" style="margin-top:12px;width:100%;justify-content:center" onclick="changePw()">비밀번호 변경</button>
+    <div style="font-size:11px;color:var(--faint);margin-top:8px">${USE_SB?"서버에 안전하게 저장됩니다. 다음 로그인부터 새 비밀번호를 쓰세요.":"※ 지금은 이 브라우저에만 저장됩니다."}</div></div>
+  <div style="border:1px solid var(--line);border-radius:12px;padding:13px;margin-bottom:14px;font-size:12px;color:var(--mut)">
+    피드백·쪽지·태스크 내용은 <b style="color:var(--ink)">자동으로 암호화</b>되어 저장돼요 — 팀원은 별도 입력 없이 바로 열람됩니다.</div>
+  <div style="display:flex;gap:10px;justify-content:space-between">
+    <button class="btn gho" onclick="exportData()">⬇ 데이터 백업</button>
+    <button class="btn gho" onclick="closeModal();logout()" style="color:var(--bad);border-color:rgba(255,107,129,.4)">로그아웃</button></div>`;
+  openModal();
+}
+async function changePw(){
+  const a=$("#npw").value, b=$("#npw2").value, msg=$("#pwmsg");
+  if(a.length<6){ msg.style.color="var(--bad)"; msg.textContent="6자 이상 입력하세요"; return; }
+  if(a!==b){ msg.style.color="var(--bad)"; msg.textContent="두 비밀번호가 다릅니다"; return; }
+  if(USE_SB){ const {error}=await sb.auth.updateUser({password:a}); if(error){ msg.style.color="var(--bad)"; msg.textContent="변경 실패: "+error.message; return; } }
+  else { localStorage.setItem("gv_pw_"+state.user.id,a); }
+  msg.style.color="var(--good)"; msg.textContent="✅ 변경됐어요 · 다음 로그인부터 적용";
+  $("#npw").value=""; $("#npw2").value=""; await logAct("비밀번호를 변경했습니다");
+}
+function exportData(){
+  const data={exported:new Date().toISOString(),profiles:state.profiles,tasks:state.tasks,
+    feedback:state.feedback.map(f=>({who:f.who,cat:f.cat,at:f.created_at,body:f._body||f.body})),
+    comments:state.comments.map(c=>({parent:c.parent,who:c.who,body:c._body||c.body})),activity:state.activity};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download="gravity_os_backup.json"; a.click(); toast("백업 파일을 내려받았어요");
+}
+
+async function enterApp(){
+  $("#loginv").classList.add("hidden"); $("#landing").classList.add("hidden"); $("#app").classList.remove("hidden");
+  const m=state.user;
+  $("#meAv").textContent=m.emoji; $("#meAv").style.background=m.color+"22"; $("#meAv").style.color=m.color;
+  $("#meNm").textContent=m.name; $("#meRo").textContent=m.role;
+  $("#sideMode").textContent=USE_SB?"● 팀 실시간":"● 로컬 저장";
+  $("#syncInd").innerHTML=USE_SB?'<span class="dot"></span><span>실시간</span>':'<span class="dot local"></span><span>로컬</span>';
+  $("#ddayBar").innerHTML=DEADLINES.slice(0,2).map(dl=>{const dd=Math.ceil((new Date(dl.d)-new Date(todayStr()))/864e5);return `<span class="dchip">${dl.t.split("·")[0].trim().slice(0,10)} <b>D-${dd}</b></span>`;}).join("");
+  await seedIfEmpty();
+  await seedLedgerIfEmpty();
+  await seedNoticesIfEmpty();
+  await go("dash");
+  // 실시간 구독
+  if(USE_SB){ ["tasks","feedback","comments","activity","profiles","messages","task_comments","task_reactions","expenses","appmeta","notices"].forEach(tb=>{
+    sb.channel("rt_"+tb).on("postgres_changes",{event:"*",schema:"public",table:tb},()=>go(state.view)).subscribe(); }); }
+  if(USE_SB){ sb.channel("rt_nt").on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},async pl=>{
+    try{ if(pl.new&&pl.new.recipient===state.user.id) toast("🔔 "+(await decText(pl.new.body))); }catch(e){}
+    go(state.view); }).subscribe(); }
+  if(state.user.id==="kangwon"){ const pl=pendingList(); if(pl.length) setTimeout(()=>toast(`가입 승인 ${pl.length}건 대기 중`),800); }
+}
+
+/* ---------- 네비/이벤트 ---------- */
+$$(".navi").forEach(n=>n.onclick=()=>{go(n.dataset.v);$("#side").classList.remove("open");});
+$("#ham").onclick=()=>$("#side").classList.toggle("open");
+$("#meBtn").onclick=openAccount;
+$("#helpBtn").onclick=openHelp;
+$("#mclose").onclick=closeModal;
+function applyTheme(){ const light=localStorage.getItem("gv_theme")==="light"; document.body.classList.toggle("light",light); const tb=$("#themeBtn"); if(tb)tb.textContent=light?"☀️":"🌙"; }
+$("#themeBtn").onclick=()=>{ localStorage.setItem("gv_theme", localStorage.getItem("gv_theme")==="light"?"dark":"light"); applyTheme(); };
+$("#ntBtn").onclick=toggleNotif;
+applyTheme();
+$("#openPal").onclick=openPal;
+document.addEventListener("keydown",e=>{
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==="k"){ e.preventDefault(); $("#palette").classList.contains("on")?closePal():openPal(); }
+  if(e.key==="Escape"){ closePal(); closeModal(); }
+  if($("#palette").classList.contains("on")){
+    const items=$("#palResult")._items||[]; const els=$$("#palResult .pr");
+    if(e.key==="ArrowDown"){ e.preventDefault(); palSel=Math.min(items.length-1,palSel+1); }
+    else if(e.key==="ArrowUp"){ e.preventDefault(); palSel=Math.max(0,palSel-1); }
+    else if(e.key==="Enter"){ items[palSel]&&items[palSel].run(); closePal(); return; }
+    els.forEach((el,i)=>el.classList.toggle("on",i===palSel));
+  }
+});
+$("#palInput").oninput=e=>renderPal(e.target.value);
+
+/* ---------- 부팅 ---------- */
+$("#agree").onchange=e=>{ const b=$("#enterBtn"); b.style.opacity=e.target.checked?1:.5; b.style.pointerEvents=e.target.checked?"auto":"none"; };
+$("#enterBtn").onclick=()=>{ $("#landing").classList.add("hidden"); $("#loginv").classList.remove("hidden"); initLogin(); };
+(async function boot(){
+  if(!USE_SB) loadLocal();
+  if(CONFIG.E2E) await ensureKey();
+  const su=sessionStorage.getItem("gv_user"); const m=su&&TEAM.find(t=>t.id===su);
+  if(m){ let ok=true;
+    if(ok&&USE_SB){ try{ const {data}=await sb.auth.getSession(); if(!data.session) ok=false; }catch(e){ok=false;} }
+    if(ok){ state.user=m; $("#landing").classList.add("hidden"); await enterApp(); return; }
+  }
+})();
+</script>
+</body>
+</html>
