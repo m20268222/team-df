@@ -961,6 +961,15 @@ async function notifyMentions(txt,where,view){
 "${txt}"`),seen:false}); }catch(e){}
   }
 }
+/* 태스크 배정 → 알림 + 쪽지(DM) 동시 전송 (강원 요청 7/9). 알림은 흘러가도 쪽지엔 배정 내용이 기록으로 남도록. 본인에게 배정 시엔 아무것도 안 감. (쪽지 패턴 현우님 제안 7/8 재사용) */
+async function notifyAssign(who,title,body,due){
+  if(!who||!state.user||who===state.user.id) return;
+  await notify(who,`${state.user.name}님이 "${title}" 태스크를 나에게 배정했어요`,"board");
+  const lines=[`📋 ${state.user.name}님이 태스크를 배정했어요`,"",`• 제목: ${title}`];
+  if(body&&body.trim()) lines.push(`• 내용: ${body.trim()}`);
+  lines.push(`• 마감: ${due?fmtDate(due):"미정"}`,`• 배정한 사람: ${state.user.name}`);
+  try{ await DB.insert("messages",{sender:state.user.id,recipient:who,body:await encText(lines.join("\n")),seen:false}); }catch(e){}
+}
 function rich(t){
   return esc(t==null?"":String(t)).replace(/@([A-Za-z0-9_가-힣]{2,12})/g,(mm,q)=>{
     const mem=MEMBERS().find(x=>x.name===q||x.name.includes(q)||x.id===q.toLowerCase());
@@ -1388,9 +1397,9 @@ async function saveEdit(id){
   if($("#etBody")){ const b=$("#etBody").value.trim(); patch.content=b?await encText(b):null; }
   if($("#etSubs")){ patch.subs=[...document.querySelectorAll('#etSubs .subrow')].map(r=>({t:r.querySelector('.subin').value.trim(),done:r.querySelector('.subin').dataset.done==="1"})).filter(x=>x.t); }
   if(state.user.id==="kangwon") patch.who=$("#etWho").value;
-  const _old=state.tasks.find(x=>x.id===id);
+  const _old=state.tasks.find(x=>x.id===id); const _wasWho=_old?_old.who:null; const _oldContent=_old?(_old._content||""):"";
   await DB.update("tasks",id,patch);
-  if(patch.who&&_old&&patch.who!==_old.who) await notify(patch.who,`${state.user.name}님이 "${title}" 태스크를 나에게 배정했어요`,"board");
+  if(patch.who&&patch.who!==_wasWho) await notifyAssign(patch.who,title,($("#etBody")?$("#etBody").value.trim():_oldContent),patch.due);
   await logAct(`"${title}" 수정`); closeModal(); toast("수정됐어요"); await go(state.view);
 }
 
@@ -1820,7 +1829,7 @@ async function saveTask(canAssign){
   const ord=(_ords.length?Math.max(..._ords):-1)+1;
   await DB.insert("tasks",{who,title,pri,due,done:false,status:"todo",subs,by:state.user.id,content:body?await encText(body):null,ord});
   await logAct(who===state.user.id?`"${title}" 추가`:`${byId(who).name}에게 "${title}" 배정`);
-  if(who!==state.user.id) await notify(who,`${state.user.name}님이 "${title}" 태스크를 나에게 배정했어요`,"board");
+  if(who!==state.user.id) await notifyAssign(who,title,body,due);
   await notifyMentions(body,`"${title}" 태스크 내용`,"board");
   closeModal(); toast("추가됐어요"); await go(state.view);
 }
@@ -2192,6 +2201,27 @@ $("#enterBtn").onclick=()=>{ $("#landing").classList.add("hidden"); $("#loginv")
     if(ok&&USE_SB){ try{ const {data}=await sb.auth.getSession(); if(!data.session) ok=false; }catch(e){ok=false;} }
     if(ok){ state.user=m; $("#landing").classList.add("hidden"); await enterApp(); return; }
   }
+})();
+</script>
+<script>
+/* 넷리파이 → 깃허브 이사 안내 — 넷리파이 도메인에서 열렸을 때만 표시 */
+(function(){
+try{
+  if(!/netlify/i.test(location.hostname))return;
+  var NEW='https://m20268222.github.io/team-df/';
+  try{if(localStorage.getItem('moved_notice_off')==='1')return;}catch(_){}
+  var b=document.createElement('div');
+  b.id='movedbar';
+  b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:99999;background:linear-gradient(90deg,#7C5CFF,#2AD1FF);color:#fff;font:700 14px/1.6 Pretendard,-apple-system,sans-serif;padding:11px 46px 11px 16px;text-align:center;box-shadow:0 4px 18px rgba(0,0,0,.35)';
+  b.innerHTML='팀 작업 공간이 새 주소로 이사했습니다 → <a href="'+NEW+'" style="color:#fff;text-decoration:underline;font-weight:800">여기를 눌러 이동</a>해 주시고, 북마크도 새 주소로 바꿔 주세요. 데이터와 계정은 그대로입니다.';
+  var x=document.createElement('button');
+  x.textContent='×';
+  x.setAttribute('aria-label','닫기');
+  x.style.cssText='position:absolute;right:10px;top:7px;background:none;border:0;color:#fff;font-size:21px;cursor:pointer;line-height:1';
+  x.onclick=function(){b.remove();try{localStorage.setItem('moved_notice_off','1');}catch(_){}};
+  b.appendChild(x);
+  document.body.appendChild(b);
+}catch(_){}
 })();
 </script>
 </body>
