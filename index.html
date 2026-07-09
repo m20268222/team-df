@@ -675,6 +675,7 @@ body.light .ntcpin{color:#8F5D00}
     <div class="navi" data-v="expense"><span class="ic">💸</span>비용 신청</div>
     <div class="navi" data-v="ledger"><span class="ic">📒</span>집행 대장</div>
     <div class="navi" data-v="feedback"><span class="ic">💬</span>피드백<span class="bdg" id="fbBdg"></span></div>
+    <div class="navi" data-v="idea"><span class="ic">💡</span>아이디어</div>
     <div class="navi" data-v="dm"><span class="ic">✉️</span>쪽지<span class="bdg" id="dmBdg"></span></div>
     <div class="navi" data-v="hub"><span class="ic">✦</span>허브 · 가이드</div>
     <div class="navi" data-v="activity"><span class="ic">≋</span>활동로그</div>
@@ -890,7 +891,7 @@ async function decText(val){
 const USE_SB = !!(CONFIG.SUPABASE_URL && CONFIG.SUPABASE_ANON_KEY && window.supabase);
 let sb=null; if(USE_SB) sb=window.supabase.createClient(CONFIG.SUPABASE_URL,CONFIG.SUPABASE_ANON_KEY);
 const LKEY="gravity_os_v1";
-const local = { tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], meta:{} };
+const local = { tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], ideas:[], idea_reactions:[], meta:{} };
 function loadLocal(){ try{ Object.assign(local, JSON.parse(localStorage.getItem(LKEY)||"{}")); }catch(e){}
   ["tasks","feedback","comments","activity","profiles","messages"].forEach(k=>{ if(!Array.isArray(local[k])) local[k]=[]; }); if(!local.meta)local.meta={}; }
 function saveLocal(){ localStorage.setItem(LKEY, JSON.stringify(local)); }
@@ -913,7 +914,7 @@ if(bc) bc.onmessage=()=>{ loadLocal(); if(state.view) render(); };
 window.addEventListener("storage",e=>{ if(e.key===LKEY){ loadLocal(); render(); }});
 
 /* ---------- 상태 ---------- */
-const state = { user:null, view:"dash", tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], dmWith:null };
+const state = { user:null, view:"dash", tasks:[], feedback:[], comments:[], activity:[], profiles:[], messages:[], task_comments:[], task_reactions:[], expenses:[], appmeta:[], notifications:[], notices:[], ideas:[], idea_reactions:[], dmWith:null };
 
 async function refresh(){
   state.profiles=await DB.list("profiles");
@@ -937,6 +938,9 @@ async function refresh(){
   for(const n of state.notifications){ n._body=await decText(n.body); }
   state.notices=await DB.list("notices");
   for(const n of state.notices){ n._body=await decText(n.body); }
+  state.ideas=await DB.list("ideas");
+  for(const i of state.ideas){ i._body=i.body?await decText(i.body):""; }
+  state.idea_reactions=await DB.list("idea_reactions");
 }
 async function logAct(txt){ await DB.insert("activity",{who:state.user.id,txt,ts:Date.now()}); }
 
@@ -1668,6 +1672,89 @@ async function seedNoticesIfEmpty(){
   }
 }
 
+/* ---------- 💡 아이디어 — 팀원 누구나 자유롭게 아이디어를 남기고 함께 봅니다 ---------- */
+let ideaMode='feed';           // 'feed'=최신순 피드 · 'people'=사람별 세로 레인(강원 제안 7/9)
+function setIdeaMode(m){ ideaMode=m; render(); }
+function ideaLikes(id){ return (state.idea_reactions||[]).filter(r=>r.idea===id); }
+function ideaSocial(i){
+  const rs=ideaLikes(i.id); const mine=rs.some(r=>r.who===state.user.id);
+  return `<div class="social"><span class="rchip${mine?' me':''}" onclick="toggleIdeaLike('${i.id}')" title="좋아요">👍 ${rs.length||''}</span></div>`;
+}
+function ideaCard(i){
+  const au=byId(i.author);
+  const canDel=(i.author===state.user.id||state.user.id==="kangwon");
+  return `<div class="ntc" style="padding:15px 18px;margin-bottom:12px">
+    <div class="ntchead" style="margin-bottom:8px">
+      <span class="pfp" style="background:${au.color}22;color:${au.color}">${au.emoji}</span>
+      <b style="font-size:14.5px;font-weight:800">${esc(au.name)}${i.author===state.user.id?' (나)':''}</b>
+      <span class="when" style="margin-left:auto">${i.created_at?ago(new Date(i.created_at).getTime()):''}</span>
+      ${canDel?`<span class="ntcops"><button class="lnk2 bad" onclick="delIdea('${i.id}')" title="삭제">삭제</button></span>`:""}
+    </div>
+    <div class="ntcbody" style="font-size:14px;line-height:1.7">${rich(i._body||i.body||"")}</div>
+    ${ideaSocial(i)}
+  </div>`;
+}
+function vIdea(){
+  const list=(state.ideas||[]).slice().sort((a,b)=>((b.created_at||"").localeCompare(a.created_at||"")));
+  const post=`<div class="ntc" style="margin-bottom:16px">
+    <label style="font-weight:800;font-size:15px">아이디어를 남겨 보세요</label>
+    <div class="sub" style="margin:4px 0 10px;cursor:default">떠오른 생각을 자유롭게 — 팀원 모두가 봅니다. 계정·카드 정보는 올리지 마세요.</div>
+    <textarea id="ideaInput" data-mention style="min-height:82px" placeholder="예: 데모 영상 첫 3초에 완성된 덱을 먼저 보여주면 어떨까요? (@이름 멘션 가능)"></textarea>
+    <div id="ideaSens"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn pri" onclick="postIdea()">＋ 아이디어 남기기</button></div>
+  </div>`;
+  const modebar=`<div class="bfilter" style="margin-bottom:14px">
+    <span class="fchip ${ideaMode==='feed'?'on':''}" onclick="setIdeaMode('feed')">🕒 최신순 <span class="cnt">${list.length}</span></span>
+    <span class="fchip ${ideaMode==='people'?'on':''}" onclick="setIdeaMode('people')">👥 사람별</span>
+  </div>`;
+  let body;
+  if(!list.length){ body=`<div class="empty">아직 아이디어가 없어요 — 첫 아이디어를 남겨 보세요.</div>`; }
+  else if(ideaMode==='people'){
+    const mem=[...MEMBERS()].sort((a,b)=>(a.id===state.user.id?-1:0)-(b.id===state.user.id?-1:0));
+    body=mem.map(m=>{
+      const mine=list.filter(i=>i.author===m.id);
+      if(!mine.length) return "";
+      return `<div style="margin-bottom:20px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:9px">
+          <span class="pfp" style="background:${m.color}22;color:${m.color}">${m.emoji}</span>
+          <b style="font-size:14.5px">${esc(m.name)}${m.id===state.user.id?' (나)':''}</b>
+          <span class="when" style="font-family:var(--fm);font-size:11px;color:var(--dim)">아이디어 ${mine.length}개</span>
+        </div>
+        ${mine.map(ideaCard).join("")}
+      </div>`;
+    }).join("")||`<div class="empty">아직 아이디어가 없어요.</div>`;
+  } else {
+    body=list.map(ideaCard).join("");
+  }
+  V.innerHTML=`<div class="vhead"><div><h1>아이디어</h1><div class="sub">팀원 누구나 자유롭게 — 떠오른 생각을 남기고 함께 봅니다</div></div></div>
+    ${post}${modebar}${body}`;
+  bindSens("#ideaInput","#ideaSens");
+}
+async function postIdea(){
+  const inp=$("#ideaInput"); if(!inp)return; const txt=inp.value.trim();
+  if(!txt){ toast("내용을 입력하세요"); return; }
+  const hits=detectSensitive(txt);
+  if(hits.length && !confirm(`⚠️ ${hits.join(", ")}처럼 보이는 내용이 있어요. 아이디어는 전원이 봅니다 — 정말 올릴까요?`)) return;
+  await DB.insert("ideas",{author:state.user.id,body:await encText(txt)});
+  await notifyMentions(txt,"아이디어","idea");
+  await logAct("아이디어를 남겼습니다");
+  toast("남겼어요"); await go("idea");
+}
+async function delIdea(id){
+  const i=(state.ideas||[]).find(x=>x.id===id); if(!i)return;
+  if(i.author!==state.user.id && state.user.id!=="kangwon"){ toast("본인 아이디어만 삭제할 수 있어요"); return; }
+  if(!confirm("이 아이디어를 삭제할까요?"))return;
+  for(const r of (state.idea_reactions||[]).filter(r=>r.idea===id)) await DB.remove("idea_reactions",r.id);
+  await DB.remove("ideas",id); toast("삭제됨"); await go("idea");
+}
+async function toggleIdeaLike(id){
+  const mine=(state.idea_reactions||[]).find(r=>r.idea===id&&r.who===state.user.id);
+  if(mine) await DB.remove("idea_reactions",mine.id);
+  else{ await DB.insert("idea_reactions",{idea:id,who:state.user.id,emoji:"👍"});
+    const i=(state.ideas||[]).find(x=>x.id===id); if(i&&i.author!==state.user.id) await notify(i.author,`${state.user.name}님이 아이디어에 👍 했어요`,"idea"); }
+  await go("idea");
+}
+
 /* ---------- 🗓 팀 타임라인 — 누가 언제까지 뭘 하는지 한 줄로 ---------- */
 function tlDays(){
   const today=new Date(todayStr());
@@ -1724,7 +1811,7 @@ function vTimeline(){
 }
 
 /* ---------- 라우터 ---------- */
-const VIEWS={dash:vDash,notice:vNotice,mine:vMine,board:vBoard,timeline:vTimeline,expense:vExpense,ledger:vLedger,feedback:vFeedback,dm:vDM,hub:vHub2,activity:vActivity};
+const VIEWS={dash:vDash,notice:vNotice,idea:vIdea,mine:vMine,board:vBoard,timeline:vTimeline,expense:vExpense,ledger:vLedger,feedback:vFeedback,dm:vDM,hub:vHub2,activity:vActivity};
 function render(){
   if(!state.user)return;
   (VIEWS[state.view]||vDash)();
@@ -2158,7 +2245,7 @@ async function enterApp(){
   await seedNoticesIfEmpty();
   await go("dash");
   // 실시간 구독
-  if(USE_SB){ ["tasks","feedback","comments","activity","profiles","messages","task_comments","task_reactions","expenses","appmeta","notices"].forEach(tb=>{
+  if(USE_SB){ ["tasks","feedback","comments","activity","profiles","messages","task_comments","task_reactions","expenses","appmeta","notices","ideas","idea_reactions"].forEach(tb=>{
     sb.channel("rt_"+tb).on("postgres_changes",{event:"*",schema:"public",table:tb},()=>go(state.view)).subscribe(); }); }
   if(USE_SB){ sb.channel("rt_nt").on("postgres_changes",{event:"INSERT",schema:"public",table:"notifications"},async pl=>{
     try{ if(pl.new&&pl.new.recipient===state.user.id) toast("🔔 "+(await decText(pl.new.body))); }catch(e){}
